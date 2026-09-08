@@ -15,12 +15,12 @@ Professor <a href="https://globalecologyflinders.com/people/#CJAB">Corey J. A. B
 
 ## Scripts
 - <code>cost_benefit.R</code>: cost-benefit analysis script for eradication program
-- <code>cum_avg_ann_costs.R</code>: script for cumulative average annual costs analysis
+- <code>cum_avg_ann_costs.R</code>: cumulative average annual costs analysis
 - <code>data_check_aggreg.R</code>: data check and aggregation script for cervidae
-- <code>deer_biomass_proj.R</code>:
-- <code>deer_costs_from_biomass.R</code>:
-- <code>gdp_analysis.R</code>:
-- <code>geogr_distrib_costs.R</code>:
+- <code>deer_biomass_proj.R</code>: estimate invasive deer biomass in Australia and project through time
+- <code>deer_costs_from_biomass.R</code>: calculate costs from biomass estimates and project costs through time
+- <code>gdp_analysis.R</code>: put cost estimates into context of Australian gross domestic product
+- <code>geogr_distrib_costs.R</code>: show geographic distribution of invasive deer costs in Australia
 - <code>temporal_analysis.R</code>:
 
 ## Data
