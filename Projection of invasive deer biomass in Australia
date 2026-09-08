@@ -125,7 +125,7 @@ ci_df <- data.frame(
 )
 #plot projected biomass over years
 ggplot(ci_df, aes(Year)) +
-  
+#draws the shaded uncertainty area between the lower and uper bounds (apply colours and transparency)
   geom_ribbon(
     aes(
       ymin = Lower,
@@ -134,16 +134,47 @@ ggplot(ci_df, aes(Year)) +
     fill = "#A6DBA0",
     alpha = 0.4
   ) +
-  
+#overlays a solid thick line representing median trend 
   geom_line(
     aes(y = Median),
     colour = "#1B7837",
     linewidth = 1.5
   ) +
-  
+  #chosen theme, and text size 
   theme_classic(base_size = 14) +
-  
+ #labels the axes 
   labs(
     x = "Year",
     y = "Biomass (million tonnes)"
   )
+#create a biomass summary table to show the projected growth every 15 years
+biomass_table <- data.frame(
+ #choose years you want shown 
+  Year = c(
+    2025,
+    2040,
+    2055
+  )  
+)
+#find the index position of the specific years listed in biomass_table$Year
+rows <- match(
+  biomass_table$Year,
+  years
+)
+#extracts the lower uncertainty interval values converting to a million tons and round to 3 decimal places
+biomass_table$Lower95 <- round(
+  biomass_lower[rows] / 1e6,
+  3
+)
+#extracts the median uncertainty interval values converting to a million tons and round to 3 decimal places
+biomass_table$Median <- round(
+  biomass_median[rows] / 1e6,
+  3
+)
+#extracts the upper uncertainty interval values converting to a million tons and round to 3 decimal places
+biomass_table$Upper95 <- round(
+  biomass_upper[rows] / 1e6,
+  3
+)
+#print table
+biomass_table
