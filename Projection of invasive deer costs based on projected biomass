@@ -49,7 +49,7 @@ forestry_cost <- function(
     price_m3
 }
 
-#state constant functions
+#state constant values (calculates baseline values - produces single fixed annual cost)
 #farmour labour assumptions
 management_annual <- management_cost(
   n_farms = 65000,
@@ -67,13 +67,13 @@ forestry_annual <- forestry_cost(
   price_m3 = 100.5
 )
 
-#Deer-vehical collison cost
+#Deer-vehical collison cost 
 #to calculate the cost of vehical collisions associated with invasive deer a crash rate was calculated from 300 reported deer-related accidents divided by an estimated starting population of deer   
 crash_rate <- 300 / 1001385
 #Average cost per crash associated with invasive deer
 cost_per_crash <- 20500
 
-#create present value function 
+#create present value function (this converts future costs into present-day values
 pv <- function(
     costs,
     years,
@@ -106,6 +106,7 @@ collision_pv_7 <- numeric(n_sim)
 
 #this section takes each Monte Carlo biomass trajectory and converts them into economic impact
 #for simulation i this extracts the projected biomass for all years from that simulation
+#extract biomass trajectory 
 for(i in seq_len(n_sim)){
   biomass <- biomass_sims[,i]
 
@@ -128,7 +129,7 @@ for(i in seq_len(n_sim)){
 #calculates the biomass in each year relative to the starting biomass (this ratio is used to scale costs)    
 (biomass / biomass[1])
   
-  #loss forestry yield costs
+  #repeat for loss forestry yield costs
   forestry <-
     forestry_annual *
     (biomass / biomass[1])
@@ -323,6 +324,10 @@ collision_cum_7 <- matrix(NA, length(years), n_sim)
 for(i in seq_len(n_sim)){ 
 #extracts biomass trajectory 
   biomass <- biomass_sims[, i]
+
+#calculate weighted population abundance
+abundance <-(biomass * 1000) / 184.850
+
 #calcuate annual grazing cost (must be here as it uses biomass as part of the baseline equation)
   grazing <- grazing_cost(
     biomass = biomass,
@@ -334,11 +339,11 @@ for(i in seq_len(n_sim)){
   management <-
     management_annual *
     (biomass / biomass[1])
-  #calculate annual forestry losses (same logic as labour costs) 
+#calculate annual forestry losses (same logic as labour costs) 
   forestry <-
     forestry_annual *
     (biomass / biomass[1])
-  #calculate collision costs 
+#calculate collision costs 
   collisions <-
     abundance *
     crash_rate *
@@ -560,16 +565,3 @@ DiscountRate = c(
     quantile(total_pv_7, 0.975)
   ) / 1e9
 )
-
-#build publication table 
-publication_table <- rbind(
-  category_summary,
-  total_rows
-)
-
-#round table results to two decimals 
-publication_table[,3:5] <-
-  round(
-    publication_table[,3:5],
-    2
-  )
