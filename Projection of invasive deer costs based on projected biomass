@@ -1,3 +1,9 @@
+#load and install packages
+install.packages("gt")
+install.packages("ggplot2")
+library(gt)
+library(ggplot2)
+
 #Create cost functions
 #Create grazing cost function
 grazing_cost <- function(
@@ -373,3 +379,197 @@ for(i in seq_len(n_sim)){
   ) 
 }
 
+#create function the plot findings
+#build plotting function
+build_df <- function(mat, category, rate){
+#lower estimate /1e9 converts $ to billions
+  data.frame(
+    Year = years,
+    Lower = 
+#loops through the matrix mat row by row
+apply(
+      mat, 1, quantile,
+#finds the lower 2.5% boundry for each row      
+probs = 0.025
+    ) 
+#scales the number down by 1 billion
+/ 1e9,
+#repeat for median estimate 
+    Median = apply(
+      mat, 1, median
+    ) / 1e9,
+#repeat for upper estimate 
+    Upper = apply(
+      mat, 1, quantile,
+      probs = 0.975
+    ) / 1e9,
+#bind the category and discount rate variables together
+    Category = category,
+    DiscountRate = rate
+  )
+}
+
+#Combine all results together (grazing, farmer labour, forestry, collisions)
+plot_df <- rbind(
+#stack results together
+  build_df(
+    grazing_cum_4,
+    "Grazing losses",
+    "4%"
+  ),
+  build_df(
+    grazing_cum_7,
+    "Grazing losses",
+    "7%"
+  ),
+  build_df(
+    management_cum_4,
+    "Farmer labour",
+    "4%"
+  ),
+  build_df(
+    management_cum_7,
+    "Farmer labour",
+    "7%"
+  ),
+  build_df(
+    forestry_cum_4,
+    "Forestry losses",
+    "4%"
+  ),
+  build_df(
+    forestry_cum_7,
+    "Forestry losses",
+    "7%"
+  ),
+  build_df(
+    collision_cum_4,
+    "Deer-vehicle collisions",
+    "4%"
+  ),
+  build_df(
+    collision_cum_7,
+    "Deer-vehicle collisions",
+    "7%"
+  )
+)
+
+#create a multi-faceted plot to display singular figure for grazing, farmer costs, forestry and collisions
+#generate figure 
+#initialise the plot and tell R what dataset to use
+ggplot(
+  plot_df,
+#select x and y axis  
+aes(
+    x = Year,
+    y = Median,
+#color the data points based on discount rate
+    colour = DiscountRate,
+    fill = DiscountRate
+  )
+) +
+  geom_ribbon(
+#define the verticle bounries of the shaded ribbon for every point along the x-axis    
+aes(
+      ymin = Lower,
+      ymax = Upper
+    ),
+#controls the transparency of the ribbons fill colour    
+alpha = 0.15,
+#remove outline border    
+colour = NA
+  ) +
+#draws the line for the data, and select line thickness (1.2)
+  geom_line(
+    linewidth = 1.2
+  ) +
+#split the data into seperate subplots or facets for each unique value in the category column
+  facet_wrap(
+    ~ Category,
+#this allows each subplot to have its own independent y-axis scale    
+scales = "free_y",
+#arranges these subplots into a grid with 2 columns    
+ncol = 2
+  ) +
+#manually assign specific color codes to the data lines and fill based on discount rate
+  scale_colour_manual(
+    values = c(
+      "4%" = "#0072B2",
+      "7%" = "#D55E00"
+    )
+  ) + 
+  scale_fill_manual(
+    values = c(
+      "4%" = "#0072B2",
+      "7%" = "#D55E00"
+    )
+  ) +
+  #set the text labes for the plot
+  labs(
+    x = "Year",
+    y = "Cumulative PV (AU$ billion)",
+    colour = "Discount rate",
+    fill = "Discount rate"
+  ) +
+  #apply the classic theme and set font size
+  theme_classic(base_size = 14) +
+  #move the legend to bottem of plot and make the subplot header text
+  theme(
+    legend.position = "bottom",
+    strip.text = element_text(face = "bold"),
+    plot.title = element_text(face = "bold")
+  )
+
+#create a table that displayes the total damages from 2025 to 2055
+#calculate the total present value of all damages across all sectors and produce one value per simulation
+total_pv_4 <- grazing_pv_4 +
+  management_pv_4 +
+  forestry_pv_4 +
+  collision_pv_4
+
+total_pv_7 <- grazing_pv_7 +
+  management_pv_7 +
+  forestry_pv_7 +
+  collision_pv_7
+
+#total summary rows
+total_rows <- data.frame(
+#labels both rows as total  
+Category = c(
+    "Total",
+    "Total"
+  ),
+#specify which row corresponds to which financial discount rate   
+DiscountRate = c(
+    "4%",
+    "7%"
+  ),
+#calculate the 2.5th percentile of the simulated value using the quantile function
+  Lower95 = c(
+    quantile(total_pv_4, 0.025),
+    quantile(total_pv_7, 0.025)
+  ) / 1e9,
+#calculate the 50th percentile of the simulated value using the quantile function
+  Median = c(
+    median(total_pv_4),
+    median(total_pv_7)
+  ) / 1e9,
+#calculate the 97.5th percentile of the simulated value using the quantile function
+  Upper95 = c(
+    quantile(total_pv_4, 0.975),
+    quantile(total_pv_7, 0.975)
+  ) / 1e9
+)
+
+#build publication table 
+publication_table <- rbind(
+  category_summary,
+  total_rows
+)
+
+#round table results to two decimals 
+publication_table[,3:5] <-
+  round(
+    publication_table[,3:5],
+    2
+  )
