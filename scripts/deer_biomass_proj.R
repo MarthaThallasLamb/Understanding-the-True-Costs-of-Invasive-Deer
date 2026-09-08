@@ -1,0 +1,180 @@
+#Install and load packages 
+install.packages("ggplot2")
+library(ggplot2)
+
+#Add the suitable parameters assumed for starting biomass (t), annujal biomass growth rate, biomass (t) carrying capacity per hectare, and years
+#starting biomass tonnes
+Btlow  <- 123404
+Btmed  <- 185106
+Bthigh <- 246808
+
+#annual biomass growth rate
+r_low  <- 0.115
+r_med  <- 0.1325
+r_high <- 0.15
+
+#biomass (t) carrying capacity per hectare 
+K_low <- 0.03697 * 10951900
+K_med <- (0.03697 * 10951900) + (0.018485 * 8317350)
+K_high <- 0.03697 * 45808675
+
+#projected from the year 2025 to 2055
+years <- 2025:2055
+
+#create function for the projected biomass model
+#create function that uses the rickers model
+project_biomass <- function(B0, r, K, years = 30){
+#create vector to store biomass over time  
+biomass <- numeric(years + 1)
+  biomass[1] <- B0
+#loop through each year to calculate next years biomass  
+for(t in 1:years){
+#Rickers model equation
+biomass[t + 1] <-
+      biomass[t] *
+      exp(
+        r * (1 - biomass[t] / K)
+      ) 
+#returned object 
+}
+  biomass 
+}
+
+#Monte Carlo Simulation for 95% UI
+#use to make random number genberation repeatable
+set.seed(123)
+#set number of simulations you want run
+n_sim <- 1000
+#run Monte Carlo simulation on using high, med, low assumptions of starting biomass (t), annujal biomass growth rate, biomass (t) carrying capacity per hectare.
+#Create matrix filled entirely with NA values as placeholders
+biomass_sims <- matrix(
+  NA,
+#set the number of rows equal to the number of years   
+nrow = length(years),
+#set the number of rows equal to the number of simulations  
+ncol = n_sim
+)
+#loop headers used to repeat a block of code the specified number of times
+for(i in seq_len(n_sim)){
+#assign BO a single random number drawn from a uniform distribution between two limitsa defined a Blow and Bhigh  
+B0 <- runif(
+    1,
+    Btlow,
+    Bthigh
+  )
+#assign r a single random number drawn from a uniform distribution between two limitsa defined a r_low and r_high  
+  r <- runif(
+    1,
+    r_low,
+    r_high
+  )
+#assign K a single random number drawn from a uniform distribution between two limitsa defined a K_low and K_high  
+  K <- runif(
+    1,
+    K_low,
+    K_high
+  )
+#extract the entire ith column from the matrix
+  biomass_sims[,i] <-
+#calculation using rickers model and random values from simulation   
+project_biomass(
+      B0,
+      r,
+      K,
+      years = 30
+    )
+}
+
+#calculate biomass uncertainty intervals 
+#quantile 0.025
+#create variable name to store calculated lower bounds
+biomass_lower <- 
+#apply function takes a matrix and applies a function (biomass_sims) across it
+apply(
+  biomass_sims,
+#the 1 specifies that the function should be applied row by row  
+1,
+#this is the function being applies to each row (calculates sample quantiles)  
+quantile,
+#tells qunatile function to look for the 2.5th percentile
+  probs = 0.025
+)
+
+#Repeat for median
+biomass_median <- apply(
+  biomass_sims,
+  1,
+  median
+)
+
+#Repeat for upper quantile 0.975
+biomass_upper <- apply(
+  biomass_sims,
+  1,
+  quantile,
+  probs = 0.975
+)
+
+#plot the projected biomass with UI
+#create uncertainty interval data frame to the million
+ci_df <- data.frame(
+  Year = years,
+  Lower = biomass_lower / 1e6,
+  Median = biomass_median / 1e6,
+  Upper = biomass_upper / 1e6
+)
+#plot projected biomass over years
+ggplot(ci_df, aes(Year)) +
+#draws the shaded uncertainty area between the lower and uper bounds (apply colours and transparency)
+  geom_ribbon(
+    aes(
+      ymin = Lower,
+      ymax = Upper
+    ),
+    fill = "#A6DBA0",
+    alpha = 0.4
+  ) +
+#overlays a solid thick line representing median trend 
+  geom_line(
+    aes(y = Median),
+    colour = "#1B7837",
+    linewidth = 1.5
+  ) +
+  #chosen theme, and text size 
+  theme_classic(base_size = 14) +
+ #labels the axes 
+  labs(
+    x = "Year",
+    y = "Biomass (million tonnes)"
+  )
+#create a biomass summary table to show the projected growth every 15 years
+biomass_table <- data.frame(
+ #choose years you want shown 
+  Year = c(
+    2025,
+    2040,
+    2055
+  )  
+)
+#find the index position of the specific years listed in biomass_table$Year
+rows <- match(
+  biomass_table$Year,
+  years
+)
+#extracts the lower uncertainty interval values converting to a million tons and round to 3 decimal places
+biomass_table$Lower95 <- round(
+  biomass_lower[rows] / 1e6,
+  3
+)
+#extracts the median uncertainty interval values converting to a million tons and round to 3 decimal places
+biomass_table$Median <- round(
+  biomass_median[rows] / 1e6,
+  3
+)
+#extracts the upper uncertainty interval values converting to a million tons and round to 3 decimal places
+biomass_table$Upper95 <- round(
+  biomass_upper[rows] / 1e6,
+  3
+)
+#print table
+biomass_table
