@@ -21,7 +21,7 @@ Professor <a href="https://globalecologyflinders.com/people/#CJAB">Corey J. A. B
 - <code>deer_costs_from_biomass.R</code>: calculate costs from biomass estimates and project costs through time
 - <code>gdp_analysis.R</code>: put cost estimates into context of Australian gross domestic product
 - <code>geogr_distrib_costs.R</code>: show geographic distribution of invasive deer costs in Australia
-- <code>temporal_analysis.R</code>:
+- <code>temporal_analysis.R</code>: temporal analysis script for cost modelling
 
 ## Data
 
