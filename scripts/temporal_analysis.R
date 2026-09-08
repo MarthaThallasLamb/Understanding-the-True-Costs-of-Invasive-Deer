@@ -1,0 +1,91 @@
+#load packages
+library(readr)
+library(invacost)
+library(dplyr)
+
+#read data
+data <- read_csv("Cleaned Additional data points 1-09.csv")
+#turn into dataframe
+data_df <- as.data.frame(data)
+#view data
+View(data_df)
+
+#plot publication lag
+db.over.time$Publication_lag <- db.over.time$Publication_year - db.over.time$Impact_year
+#create quantiles
+quantiles <- quantile(db.over.time$Publication_lag, probs = c(.25, .5, .75))
+#print the quantile
+quantiles
+
+#Creating the vector of weights
+year_weights <- rep(1, length(1990:2026))
+names(year_weights) <- 1990:2026
+
+#Assigning weights
+#Below 25% the weight does not matter because years will be removed
+year_weights[names(year_weights) >= (2026 - quantiles["25%"])] <- 0
+#Between 25 and 50%, assigning 0.25 weight
+year_weights[names(year_weights) >= (2026 - quantiles["50%"]) &
+               names(year_weights) < (2026 - quantiles["25%"])] <- .25
+#Between 50 and 75%, assigning 0.5 weight
+year_weights[names(year_weights) >= (2026 - quantiles["75%"]) &
+               names(year_weights) < (2026 - quantiles["50%"])] <- .5
+
+#print the year weights
+year_weights
+
+#plot global costs in specified timeframe
+global.trend <- modelCosts(
+  db.over.time, # The EXPANDED database
+  cost.column = "AUD.2026.dollar.conversions",
+  minimum.year = 1990, 
+  maximum.year = 2026,
+  incomplete.year.threshold = 2025)
+
+#Let's see the results in the console
+global.trend
+#plot these results with a changed title
+plot(global.trend) + labs(y = "Average annual cost (2026 AUD$, millions)")
+#plot results with changed title and on single plot
+plot(global.trend, plot.type = "single") +
+  labs(y = "Average annual cost (2026 AUD$, millions)")
+
+#Australian exclusive data
+#plot timelag
+db.over.timeAUS$Publication_lag <- db.over.timeAUS$Publication_year - db.over.timeAUS$Impact_year
+
+#calculate quantiles
+quantiles <- quantile(db.over.timeAUS$Publication_lag, probs = c(.25, .5, .75))
+#print the quantiles
+quantiles
+
+# Creating the vector of weights
+year_weights <- rep(1, length(2010:2026))
+names(year_weights) <- 2010:2026
+
+#Assigning weights
+#Below 25% the weight does not matter because years will be removed
+year_weights[names(year_weights) >= (2026 - quantiles["25%"])] <- 0
+#Between 25 and 50%, assigning 0.25 weight
+year_weights[names(year_weights) >= (2026 - quantiles["50%"]) &
+               names(year_weights) < (2026 - quantiles["25%"])] <- .25
+#Between 50 and 75%, assigning 0.5 weight
+year_weights[names(year_weights) >= (2026 - quantiles["75%"]) &
+               names(year_weights) < (2026 - quantiles["50%"])] <- .5
+
+#Let's look at it
+year_weights
+
+#plot regressions models 
+global.trendAUS <- modelCosts(
+  db.over.timeAUS, # The EXPANDED database
+  cost.column = "AUD.2026.dollar.conversions",
+  minimum.year = 2010, 
+  maximum.year = 2026,
+  incomplete.year.threshold = 2025)
+
+#Let's see the results in the console
+global.trendAUS
+
+#plot with changed title
+plot(global.trendAUS) + labs(y = "Average annual cost (2026 AUD$, millions)")
