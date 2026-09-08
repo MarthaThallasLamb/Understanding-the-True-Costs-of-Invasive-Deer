@@ -15,7 +15,7 @@ Professor <a href="https://globalecologyflinders.com/people/#CJAB">Corey J. A. B
 
 ## Scripts
 - <code>cost_benefit.R</code>: cost-benefit analysis script for eradication program
-- <code>cum_avg_ann_costs.R</code>:
+- <code>cum_avg_ann_costs.R</code>: script for cumulative average annual costs analysis
 - <code>data_check_aggreg.R</code>:
 - <code>deer_biomass_proj.R</code>:
 - <code>deer_costs_from_biomass.R</code>:
