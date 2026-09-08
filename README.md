@@ -1,4 +1,6 @@
 # True costs of invasive deer
+<img align="right" src="www/feraldeericon.png" alt="invasive deer" width="180" style="margin-top: 20px">
+
 Code and data accompanying paper and Honours thesis to calculate the economic costs of invasive deer (Cervidae) globally and in Australia, and the return on investment in their management.<br>
 <br>
 <a href="https://globalecologyflinders.com/people/#MTL">Martha Thallas-Lamb</a><br>
@@ -24,3 +26,7 @@ Professor <a href="https://globalecologyflinders.com/people/#CJAB">Corey J. A. B
 ## Data
 
 ## Required R libraries
+
+<br>
+<br>
+<p><a href="https://www.flinders.edu.au"><img align="bottom-left" src="www/Flinders_University_Logo_Stacked_RGB_Master.jpg" alt="Flinders University" width="80" style="margin-top: 20px"></a> &nbsp; <a href="https://globalecologyflinders.com"><img align="bottom-left" src="www/GEL Logo Kaurna New Transp.png" alt="GEL" width="170" style="margin-top: 20px"></a> &nbsp; <a href="https://pir.sa.gov.au"><img align="bottom-left" src="www/PIRSAlogo.svg" alt="PIRSA" width="170" style="margin-top: 20px"></a></p>
