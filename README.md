@@ -14,14 +14,14 @@ Professor <a href="https://globalecologyflinders.com/people/#CJAB">Corey J. A. B
 <a href="mailto:corey.bradshaw@flinders.edu.au">e-mail</a><br>
 
 ## Scripts
-- cost_benefit.R:
-- cum_avg_ann_costs.R:
-- data_check_aggreg.R:
-- deer_biomass_proj.R:
-- deer_costs_from_biomass.R:
-- gdp_analysis.R:
-- geogr_distrib_costs.R:
-- temporal_analysis.R:
+- <code>cost_benefit.R</code>:
+- <code>cum_avg_ann_costs.R</code>:
+- <code>data_check_aggreg.R</code>:
+- <code>deer_biomass_proj.R</code>:
+- <code>deer_costs_from_biomass.R</code>:
+- <code>gdp_analysis.R</code>:
+- <code>geogr_distrib_costs.R</code>:
+- <code>temporal_analysis.R</code>:
 
 ## Data
 
