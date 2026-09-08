@@ -26,7 +26,7 @@ Professor <a href="https://globalecologyflinders.com/people/#CJAB">Corey J. A. B
 ## Data
 
 ## Required R libraries
-<code>invacost</code>,
+<code>dplyr</code>, <code>ggplot2</code>, <code>gt</code>, <code>invacost</code>, <code>maps</code>, <code>ozmaps</code>, <code>patchwork</code>, <code>plyr</code>, <code>purrr</code>, <code>readr</code>, <code>rnaturalearth</code>, <code>scales</code>, <code>sf</code>, <code>sp</code>, <code>tidyverse</code>, <code>tmap</code>, <code>tools</code>
 
 <br>
 <br>
