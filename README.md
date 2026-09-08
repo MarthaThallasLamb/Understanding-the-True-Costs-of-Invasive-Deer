@@ -14,7 +14,7 @@ Professor <a href="https://globalecologyflinders.com/people/#CJAB">Corey J. A. B
 <a href="mailto:corey.bradshaw@flinders.edu.au">e-mail</a><br>
 
 ## Scripts
-- <code>cost_benefit.R</code>:
+- <code>cost_benefit.R</code>: cost-benefit analysis script for eradication program
 - <code>cum_avg_ann_costs.R</code>:
 - <code>data_check_aggreg.R</code>:
 - <code>deer_biomass_proj.R</code>:
