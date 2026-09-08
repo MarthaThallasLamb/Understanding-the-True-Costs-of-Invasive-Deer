@@ -29,4 +29,4 @@ Professor <a href="https://globalecologyflinders.com/people/#CJAB">Corey J. A. B
 
 <br>
 <br>
-<p><a href="https://www.flinders.edu.au"><img align="bottom-left" src="www/Flinders_University_Logo_Horizontal_RGB_Master.png" alt="Flinders University" height="50" style="margin-top: 20px"></a> &nbsp; <a href="https://globalecologyflinders.com"><img align="bottom-left" src="www/GEL Logo Kaurna New Transp.png" alt="GEL" height="80" style="margin-top: 20px"></a> &nbsp; <a href="https://pir.sa.gov.au"><img align="bottom-left" src="www/PIRSAlogo.svg" alt="PIRSA" height="50" style="margin-top: 20px"></a></p>
+<p><a href="https://www.flinders.edu.au"><img align="bottom-left" src="www/Flinders_University_Logo_Horizontal_RGB_Master.png" alt="Flinders University" height="50" style="margin-top: 20px"></a> &nbsp; <a href="https://globalecologyflinders.com"><img align="bottom-left" src="www/GEL Logo Kaurna New Transp.png" alt="GEL" height="80" style="margin-top: 20px"></a> &nbsp; <a href="https://pir.sa.gov.au"><img align="bottom-left" src="www/PIRSAlogo.svg" alt="PIRSA" height="80" style="margin-top: 20px"></a></p>
