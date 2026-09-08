@@ -1,5 +1,5 @@
 # True costs of invasive deer
-Code and data accompanying paper and Honours thesis to calculate the economic costs of invasive deer (Cervidae) globally and in Australia, and the return on investment in their management.
+Code and data accompanying paper and Honours thesis to calculate the economic costs of invasive deer (Cervidae) globally and in Australia, and the return on investment in their management.<br>
 <br>
 <a href="https://globalecologyflinders.com/people/#MTL">Martha Thallas-Lamb</a><br>
 <a href="https://globalecologyflinders.com">Global Ecology</a>, <a href="https://flinders.edu.au">Flinders University</a><br>
