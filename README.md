@@ -26,6 +26,7 @@ Professor <a href="https://globalecologyflinders.com/people/#CJAB">Corey J. A. B
 ## Data
 
 ## Required R libraries
+<code>invacost</code>,
 
 <br>
 <br>
