@@ -1,0 +1,567 @@
+#load and install packages
+install.packages("gt")
+install.packages("ggplot2")
+library(gt)
+library(ggplot2)
+
+#Create cost functions
+#Create grazing cost function
+grazing_cost <- function(
+    biomass,
+    farmland_prop,
+    dse_per_tonne,
+    gross_margin_dse
+){
+#calcualtion
+  biomass *
+    farmland_prop *
+    dse_per_tonne *
+    gross_margin_dse
+}
+
+#create function of farmour labour costs
+management_cost <- function(
+    n_farms,
+    prop_affected,
+    days,
+    hours_day,
+    wage
+){
+#caluclation
+  affected <- n_farms * prop_affected
+  affected *
+    days *
+    hours_day *
+    wage
+}
+
+#create function of lost forestry yield costs
+forestry_cost <- function(
+    production_m3,
+    prop_affected,
+    yield_loss,
+    price_m3
+){
+#calculation
+  production_m3 *
+    prop_affected *
+    yield_loss *
+    price_m3
+}
+
+#state constant values (calculates baseline values - produces single fixed annual cost)
+#farmour labour assumptions
+management_annual <- management_cost(
+  n_farms = 65000,
+  prop_affected = 0.10,
+  days = 20,
+  hours_day = 8,
+  wage = 40
+)
+
+#lost forestry yield costs assumptions 
+forestry_annual <- forestry_cost(
+  production_m3 = 22864000,
+  prop_affected = 0.40,
+  yield_loss = 0.055,
+  price_m3 = 100.5
+)
+
+#Deer-vehical collison cost 
+#to calculate the cost of vehical collisions associated with invasive deer a crash rate was calculated from 300 reported deer-related accidents divided by an estimated starting population of deer   
+crash_rate <- 300 / 1001385
+#Average cost per crash associated with invasive deer
+cost_per_crash <- 20500
+
+#create present value function (this converts future costs into present-day values
+pv <- function(
+    costs,
+    years,
+    discount_rate
+)
+#calcualte PV for each individual year and sum them
+{
+  sum(
+    costs /
+      (1 + discount_rate)^(
+        years - min(years)
+      )
+  ) 
+}
+
+#create place to store objects for grazing at 4% and 7% PV 
+#numeric(n_sim) inititalises an empty numeric vector with a length specified by the variable n_sim
+#grazing loss
+grazing_pv_4 <- numeric(n_sim)
+grazing_pv_7 <- numeric(n_sim)
+#farmer labour costs
+management_pv_4 <- numeric(n_sim)
+management_pv_7 <- numeric(n_sim)
+#forestry yield losses
+forestry_pv_4 <- numeric(n_sim)
+forestry_pv_7 <- numeric(n_sim)
+#deer-vehical collision costs
+collision_pv_4 <- numeric(n_sim)
+collision_pv_7 <- numeric(n_sim)
+
+#this section takes each Monte Carlo biomass trajectory and converts them into economic impact
+#for simulation i this extracts the projected biomass for all years from that simulation
+#extract biomass trajectory 
+for(i in seq_len(n_sim)){
+  biomass <- biomass_sims[,i]
+
+#weighted calculation for abundance 
+  abundance <-
+    (biomass * 1000) / 184.850
+
+#calculates grazing losses for each year based on projected biomass
+  grazing <- grazing_cost(
+    biomass = biomass,
+    farmland_prop = 0.10,
+    dse_per_tonne = 16.23,
+    gross_margin_dse = 23.5
+  )
+
+#projection of future costs using projected biomass (with all expenditures assumed to scale linearly with biomass - meaning managament and forestry damages increase in direct propoertion to deer biomass)
+  #farmour labour management 
+  management <-
+    management_annual *
+#calculates the biomass in each year relative to the starting biomass (this ratio is used to scale costs)    
+(biomass / biomass[1])
+  
+  #repeat for loss forestry yield costs
+  forestry <-
+    forestry_annual *
+    (biomass / biomass[1])
+  
+  #deer-vehicle collision costs (this calculation is based on abundance of population size rather than biomass)
+  collisions <-
+    abundance *
+    crash_rate *
+    cost_per_crash
+
+#calculate these costs at a 4% and 7% discount rate using PV function created earlier 
+#grazing costs
+grazing_pv_4[i] <- pv(
+    grazing,
+    years,
+    0.04
+  )
+  grazing_pv_7[i] <- pv(
+    grazing,
+    years,
+    0.07
+  )
+  #farmer labour costs
+  management_pv_4[i] <- pv(
+    management,
+    years,
+    0.04
+  )
+  management_pv_7[i] <- pv(
+    management,
+    years,
+    0.07
+  )
+  #forestry costs
+  forestry_pv_4[i] <- pv(
+    forestry,
+    years,
+    0.04
+  )
+  forestry_pv_7[i] <- pv(
+    forestry,
+    years,
+    0.07
+  )
+  #collision costs
+  collision_pv_4[i] <- pv(
+    collisions,
+    years,
+    0.04
+  )
+  collision_pv_7[i] <- pv(
+    collisions,
+    years,
+    0.07
+  ) 
+}
+
+#create a summary table of these results including 4% and 7% discount rate 
+category_summary <- data.frame(
+  
+  Category = rep(
+    c(
+      "Grazing losses",
+      "Farmer labour",
+      "Forestry losses",
+      "Deer-vehicle collisions"
+    ),
+    2
+  ),
+  
+  DiscountRate = c(
+    rep("4%",4),
+    rep("7%",4)
+  ),
+#calculate 95% uncertainty interval and median for each cost category based on monte carlo simulation (to billion $)
+#Lower interval at 4% PV 
+Lower95 = c(
+    quantile(grazing_pv_4,0.025),
+    quantile(management_pv_4,0.025),
+    quantile(forestry_pv_4,0.025),
+    quantile(collision_pv_4,0.025),
+#Lower interval at 7% PV
+    quantile(grazing_pv_7,0.025),
+    quantile(management_pv_7,0.025),
+    quantile(forestry_pv_7,0.025),
+    quantile(collision_pv_7,0.025)
+  ) / 1e9,
+#Median interval 4% PV
+  Median = c(
+    median(grazing_pv_4),
+    median(management_pv_4),
+    median(forestry_pv_4),
+    median(collision_pv_4),
+#Median interval 7% PV
+    median(grazing_pv_7),
+    median(management_pv_7),
+    median(forestry_pv_7),
+    median(collision_pv_7)
+  ) / 1e9,
+#Upper interval 4% PV
+  Upper95 = c(
+    quantile(grazing_pv_4,0.975),
+    quantile(management_pv_4,0.975),
+    quantile(forestry_pv_4,0.975),
+    quantile(collision_pv_4,0.975),
+ #Upper interval 7% PV
+    quantile(grazing_pv_7,0.975),
+    quantile(management_pv_7,0.975),
+    quantile(forestry_pv_7,0.975),
+    quantile(collision_pv_7,0.975)
+  ) / 1e9 
+)
+
+#Print summary table 
+print(category_summary)
+
+#Present value plot of total projected cost (side-by-side bar chart with error bars visualises median present value at 4% and 7% discount rate alongside their 95% uncertainty interval)
+ggplot(
+  category_summary,
+#x-axis tracks discrete category, the height of the bar shows the median value and the bars are colour-filled by discount rate  
+aes(
+    x = Category,
+    y = Median,
+    fill = DiscountRate
+  )
+) +
+#places the 4% and 7% discount rate bars next to each other and the bar width is chosen  
+  geom_col(
+    position = position_dodge(0.8),
+    width = 0.7
+  ) +
+  #draw error bars strecthing from lower to upper interval and align them using position to center of each bar
+  geom_errorbar(
+    aes(
+      ymin = Lower95,
+      ymax = Upper95
+    ),
+    width = 0.2,
+    position = position_dodge(0.8)
+  ) +
+  #choose a colour palette
+  scale_fill_manual(
+    values = c(
+      "4%" = "#0072B2",
+      "7%" = "#D55E00"
+    )
+  ) +
+#choose theme and font size
+  theme_classic(base_size = 14) +
+  labs(
+    x = NULL,
+    y = "Present value (AU$ billion)",
+    fill = "Discount rate"
+  ) +
+#position the legend at the bottem and tilt the x-axis labels by 20 degrees to prevent them from overlapping
+  theme(
+    legend.position = "bottom",
+    axis.text.x = element_text(
+      angle = 20,
+      hjust = 1
+    ),
+    plot.title = element_text(
+      face = "bold"
+    )
+  )
+
+#create empty containers to store results from every Monte Carlo simulation
+grazing_cum_4 <- 
+#creates a matrix filled with missing values as placeholder, as the simulation runs these will be overwritten
+matrix(NA, 
+#sets the number of rows in the matrix
+length(years), 
+#sets the number of columns in the matrix corresponding to the toal number of simulation runs or iterations
+n_sim)
+#repeat
+grazing_cum_7 <- matrix(NA, length(years), n_sim)
+#repeat
+management_cum_4 <- matrix(NA, length(years), n_sim)
+#repeat
+management_cum_7 <- matrix(NA, length(years), n_sim)
+#repeat
+forestry_cum_4 <- matrix(NA, length(years), n_sim)
+#repeat
+forestry_cum_7 <- matrix(NA, length(years), n_sim)
+#repeat
+collision_cum_4 <- matrix(NA, length(years), n_sim)
+#repeat
+collision_cum_7 <- matrix(NA, length(years), n_sim)
+
+#calcualte the cumulative PV for each simulation
+#(runs through each of the 1000 biomass simulations )
+for(i in seq_len(n_sim)){ 
+#extracts biomass trajectory 
+  biomass <- biomass_sims[, i]
+
+#calculate weighted population abundance
+abundance <-(biomass * 1000) / 184.850
+
+#calcuate annual grazing cost (must be here as it uses biomass as part of the baseline equation)
+  grazing <- grazing_cost(
+    biomass = biomass,
+    farmland_prop = 0.10,
+    dse_per_tonne = 16.23,
+    gross_margin_dse = 23.5
+  )
+#calculate annual labour costs (scale baseline labour costs accourding to biomass growth)
+  management <-
+    management_annual *
+    (biomass / biomass[1])
+#calculate annual forestry losses (same logic as labour costs) 
+  forestry <-
+    forestry_annual *
+    (biomass / biomass[1])
+#calculate collision costs 
+  collisions <-
+    abundance *
+    crash_rate *
+    cost_per_crash
+
+#convert annual costs into cummulative present value (4% and 7% discount rate)
+  grazing_cum_4[, i] <- cumsum(
+    grazing /
+      (1 + 0.04)^(years - min(years))
+  )
+  grazing_cum_7[, i] <- cumsum(
+    grazing /
+      (1 + 0.07)^(years - min(years))
+  )
+  management_cum_4[, i] <- cumsum(
+    management /
+      (1 + 0.04)^(years - min(years))
+  )
+  management_cum_7[, i] <- cumsum(
+    management /
+      (1 + 0.07)^(years - min(years))
+  )
+  forestry_cum_4[, i] <- cumsum(
+    forestry /
+      (1 + 0.04)^(years - min(years))
+  )
+  forestry_cum_7[, i] <- cumsum(
+    forestry /
+      (1 + 0.07)^(years - min(years))
+  )
+  collision_cum_4[, i] <- cumsum(
+    collisions /
+      (1 + 0.04)^(years - min(years))
+  )
+  collision_cum_7[, i] <- cumsum(
+    collisions /
+      (1 + 0.07)^(years - min(years))
+  ) 
+}
+
+#create function the plot findings
+#build plotting function
+build_df <- function(mat, category, rate){
+#lower estimate /1e9 converts $ to billions
+  data.frame(
+    Year = years,
+    Lower = 
+#loops through the matrix mat row by row
+apply(
+      mat, 1, quantile,
+#finds the lower 2.5% boundry for each row      
+probs = 0.025
+    ) 
+#scales the number down by 1 billion
+/ 1e9,
+#repeat for median estimate 
+    Median = apply(
+      mat, 1, median
+    ) / 1e9,
+#repeat for upper estimate 
+    Upper = apply(
+      mat, 1, quantile,
+      probs = 0.975
+    ) / 1e9,
+#bind the category and discount rate variables together
+    Category = category,
+    DiscountRate = rate
+  )
+}
+
+#Combine all results together (grazing, farmer labour, forestry, collisions)
+plot_df <- rbind(
+#stack results together
+  build_df(
+    grazing_cum_4,
+    "Grazing losses",
+    "4%"
+  ),
+  build_df(
+    grazing_cum_7,
+    "Grazing losses",
+    "7%"
+  ),
+  build_df(
+    management_cum_4,
+    "Farmer labour",
+    "4%"
+  ),
+  build_df(
+    management_cum_7,
+    "Farmer labour",
+    "7%"
+  ),
+  build_df(
+    forestry_cum_4,
+    "Forestry losses",
+    "4%"
+  ),
+  build_df(
+    forestry_cum_7,
+    "Forestry losses",
+    "7%"
+  ),
+  build_df(
+    collision_cum_4,
+    "Deer-vehicle collisions",
+    "4%"
+  ),
+  build_df(
+    collision_cum_7,
+    "Deer-vehicle collisions",
+    "7%"
+  )
+)
+
+#create a multi-faceted plot to display singular figure for grazing, farmer costs, forestry and collisions
+#generate figure 
+#initialise the plot and tell R what dataset to use
+ggplot(
+  plot_df,
+#select x and y axis  
+aes(
+    x = Year,
+    y = Median,
+#color the data points based on discount rate
+    colour = DiscountRate,
+    fill = DiscountRate
+  )
+) +
+  geom_ribbon(
+#define the verticle bounries of the shaded ribbon for every point along the x-axis    
+aes(
+      ymin = Lower,
+      ymax = Upper
+    ),
+#controls the transparency of the ribbons fill colour    
+alpha = 0.15,
+#remove outline border    
+colour = NA
+  ) +
+#draws the line for the data, and select line thickness (1.2)
+  geom_line(
+    linewidth = 1.2
+  ) +
+#split the data into seperate subplots or facets for each unique value in the category column
+  facet_wrap(
+    ~ Category,
+#this allows each subplot to have its own independent y-axis scale    
+scales = "free_y",
+#arranges these subplots into a grid with 2 columns    
+ncol = 2
+  ) +
+#manually assign specific color codes to the data lines and fill based on discount rate
+  scale_colour_manual(
+    values = c(
+      "4%" = "#0072B2",
+      "7%" = "#D55E00"
+    )
+  ) + 
+  scale_fill_manual(
+    values = c(
+      "4%" = "#0072B2",
+      "7%" = "#D55E00"
+    )
+  ) +
+  #set the text labes for the plot
+  labs(
+    x = "Year",
+    y = "Cumulative PV (AU$ billion)",
+    colour = "Discount rate",
+    fill = "Discount rate"
+  ) +
+  #apply the classic theme and set font size
+  theme_classic(base_size = 14) +
+  #move the legend to bottem of plot and make the subplot header text
+  theme(
+    legend.position = "bottom",
+    strip.text = element_text(face = "bold"),
+    plot.title = element_text(face = "bold")
+  )
+
+#create a table that displayes the total damages from 2025 to 2055
+#calculate the total present value of all damages across all sectors and produce one value per simulation
+total_pv_4 <- grazing_pv_4 +
+  management_pv_4 +
+  forestry_pv_4 +
+  collision_pv_4
+
+total_pv_7 <- grazing_pv_7 +
+  management_pv_7 +
+  forestry_pv_7 +
+  collision_pv_7
+
+#total summary rows
+total_rows <- data.frame(
+#labels both rows as total  
+Category = c(
+    "Total",
+    "Total"
+  ),
+#specify which row corresponds to which financial discount rate   
+DiscountRate = c(
+    "4%",
+    "7%"
+  ),
+#calculate the 2.5th percentile of the simulated value using the quantile function
+  Lower95 = c(
+    quantile(total_pv_4, 0.025),
+    quantile(total_pv_7, 0.025)
+  ) / 1e9,
+#calculate the 50th percentile of the simulated value using the quantile function
+  Median = c(
+    median(total_pv_4),
+    median(total_pv_7)
+  ) / 1e9,
+#calculate the 97.5th percentile of the simulated value using the quantile function
+  Upper95 = c(
+    quantile(total_pv_4, 0.975),
+    quantile(total_pv_7, 0.975)
+  ) / 1e9
+)
