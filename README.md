@@ -13,7 +13,7 @@ Professor <a href="https://globalecologyflinders.com/people/#CJAB">Corey J. A. B
 <a href="https://globalecologyflinders.com">Global Ecology</a>, <a href="https://flinders.edu.au">Flinders University</a><br>
 <a href="mailto:corey.bradshaw@flinders.edu.au">e-mail</a><br>
 
-## Scripts
+## <a href="https://github.com/MarthaThallasLamb/Understanding-the-True-Costs-of-Invasive-Deer/tree/main/scripts">Scripts</a>
 - <code>cost_benefit.R</code>: cost-benefit analysis script for eradication program
 - <code>cum_avg_ann_costs.R</code>: cumulative average annual costs analysis
 - <code>data_check_aggreg.R</code>: data check and aggregation script for cervidae
