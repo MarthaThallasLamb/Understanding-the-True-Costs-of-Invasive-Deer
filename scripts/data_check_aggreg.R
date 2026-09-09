@@ -55,7 +55,7 @@ nrow(invacost.cervid)
 
 #data check for additional cost estimates found
 #load data
-Additional<- read_csv("Additional Cost estimates for invasive cervidae 31-08.csv")
+Additional<- read_csv("Additional Cost estimates for invasive cervidae 9-09.csv")
 
 #check number of current cost estimates within dataset
 nrow(Additional)
@@ -92,9 +92,9 @@ Additional <- Additional[which(Additional$Implementation == "Observed"), ]
 nrow(Additional)
 
 #print data to manually check datapoints
-write.csv(Additional, "Additional data points filtered 31-08.csv", row.names = FALSE)
+write.csv(Additional, "Additional cervidae data points filtered.csv", row.names = FALSE)
 #open csv file
-file.show("Additional data points filtered 31-08.csv")
+file.show("Additional cervidae data points filtered.csv")
 
 #aggregate both datasets 
 #check variable names are the same 
@@ -152,23 +152,21 @@ class(invacost.cervid$Max_Raw_cost_estimate_original_currency)
 #combine the original invacost dataset that has been filtered and the additional cervidae cost dataset that was also filtered 
 invacost.aggcervidae <- bind_rows(Additional, invacost.cervid)
 
-#print the aggregated data to manually check datapoints
-write.csv(invacost.aggcervidae, "Aggregated data filtered 31-08.csv", row.names = FALSE)
-#open the csv file created 
-file.show("Aggregated data filtered 31-08.csv")
+##print data to manually check datapoints
+write.csv(invacost.aggcervidae, "Aggregated cervidae data filtered.csv", row.names = FALSE)
+file.show("Aggregated cervidae data filtered.csv")
 
-#check rows and columns
+##remove data points after manual check 117 (sc3299 duplicate) 113 (sc3091 horse/donkey)
+cleaned_df <- invacost.aggcervidae[-c(117, 113), ]
+
+##check rows and columns
 nrow(invacost.aggcervidae)
 ncol(invacost.aggcervidae)
 
-#remove data points after manual check (116 removed as it was a duplicate and the 110 datapoint was removed because it was not cervidae it was put down as donkey/horse
-cleaned_df <- invacost.aggcervidae[-c(116, 110), ]
-
-#check rows and columns number
+##check rows and columns
 nrow(cleaned_df)
 ncol(cleaned_df)
 
-#print data to manually check datapoints after being filtered, aggregated and manually checked
-write.csv(cleaned_df, "Cleaned Additional data points 1-09.csv", row.names = FALSE)
-#open the csv created
-file.show("Cleaned Additional data points 1-09.csv")
+#print data again to manually check data points
+write.csv(cleaned_df, "Cleaned Additional cervidae data points.csv", row.names = FALSE)
+file.show("Cleaned Additional cervidae data points.csv")
