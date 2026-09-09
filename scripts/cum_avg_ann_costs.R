@@ -6,14 +6,13 @@ library(ggplot2)
 library(scales)
 
 #read data
-data <- read_csv("Cleaned Additional data points 1-09.csv")
-#turn to dataframe
+data <- read_csv("Cleaned Additional cervidae data points.csv")
+
+#turn into dataframe
 data_df <- as.data.frame(data)
+
 #manually view the dataframe
 View(data_df)
-
-#check for duplicates
-data_df$Cost_ID[duplicated(data$Cost_ID)]
 
 #expand data using invacost package
 db.over.time <- expandYearlyCosts(
@@ -22,18 +21,25 @@ db.over.time <- expandYearlyCosts(
   endcolumn = "Probable_ending_year_adjusted"
 )
 
-#US 2017 to Australian 2026 dollar conversion
-conv_factor <- 1.3047 * (101.3 / 111.175)
+#USD 2017 to AUD 2025 conversion factor
+cpi_2017 <- 245.121
+cpi_2025 <- 321.962
 
-#add the converted costs to the expanded data
+aud_usd_2017 <- 0.7669  # 1 AUD = 0.7669 USD
+
+conv_factor <- (cpi_2025 / cpi_2017) / aud_usd_2017
+
+# Add converted costs to dataset
 db.over.time <- db.over.time %>%
   mutate(
-    AUD.2026.dollar.conversions =
-      Cost_estimate_per_year_2017_USD_exchange_rate * conv_factor
+    AUD_2025 = Cost_estimate_per_year_2017_USD_exchange_rate * conv_factor
   )
 
+#manually inspect conversions
+head(db.over.time$Cost_estimate_per_year_2017_USD_exchange_rate)
+
 #create histogram to visualise the data
-hist(db.over.time$AUD.2026.dollar.conversions)
+hist(db.over.time$AUD_2025)
 
 #check the number of row and column 
 nrow(db.over.time)
@@ -58,17 +64,15 @@ ggplot(db.over.time,
   xlab("") +
   coord_flip()
 
-names(db.over.time)
-args(summarizeCosts)
-
 #check the quantiles
 quantiles <- quantile(db.over.time$Publication_lag, probs = c(.25, .5, .75))
+#print quantiles
 quantiles
 
-#summarise the expanded costs using the 2026 aud conversion
+#summarise the expanded costs using the 2025 aud conversion
 obs.costs <- summarizeCosts(
   db.over.time,
-  cost.column = "AUD.2026.dollar.conversions",
+  cost.column = "AUD_2025",
   maximum.year = 2026
 )
 
@@ -87,7 +91,7 @@ p1
 #Customize p1 now
 p1 <- p1 +
   xlab("Year") + 
-  ylab("Average annual cost of invasive deer in 2026 AUD$ millions") +
+  ylab("Average annual cost of invasive deer in 2025 AUD$ millions") +
   scale_x_continuous(breaks = obs.costs$year.breaks) + # X axis breaks
   theme_bw() + # Minimal theme
   scale_y_log10(breaks = 10^(-15:15), # y axis in log 10 with pretty labels
@@ -99,7 +103,7 @@ p1
 
 #plot the expanded and summarised data looking at specified timeframe
 obs.costs2 <- summarizeCosts(db.over.time,
-                             cost.column = "AUD.2026.dollar.conversions",
+                             cost.column = "AUD_2025",
                              minimum.year = 1990,
                              maximum.year = 2026,
                              year.breaks = seq(1990, 2026, by = 9))
@@ -116,11 +120,11 @@ p2 <- plot(obs.costs2,
 #Show the graph in its initial state
 p2
 
-# Customize p2 now
+#Customize p2 now
 p2 <- p2 +
   labs(
     x = "Year",
-    y = "Average annual cost (2026 AUD$, millions)"
+    y = "Average annual cost (2025 AUD$, millions)"
   ) +
   scale_x_continuous(
     breaks = obs.costs$year.breaks
@@ -136,7 +140,7 @@ p2 <- p2 +
     plot.title = element_text(face = "bold", hjust = 0.5)
   )
 
-# Let's see how it goes
+#display figure
 p2
 
 #look at the publication dates (look at the number of estimates made over time)
@@ -174,14 +178,10 @@ db.over.timeAUS <- expandYearlyCosts(
   endcolumn = "Probable_ending_year_adjusted"
 )
 
-#2017 us to 2026 aud conversion calculation
-conv_factor <- 1.3047 * (101.3 / 111.175)
-
-#add the 2026 aus conversion column to expanded costs
+# Add converted costs to dataset
 db.over.timeAUS <- db.over.timeAUS %>%
   mutate(
-    AUD.2026.dollar.conversions =
-      Cost_estimate_per_year_2017_USD_exchange_rate * conv_factor
+    AUD_2025 = Cost_estimate_per_year_2017_USD_exchange_rate * conv_factor
   )
 
 #check that the conversion worked and has been added to aus data
@@ -189,8 +189,8 @@ db.over.timeAUS %>%
   filter(Cost_ID == "FD61") %>%
   summarise(
     years = n(),
-    annual_aud = first(AUD.2026.dollar.conversions),
-    total_aud = sum(AUD.2026.dollar.conversions)
+    annual_aud = first(AUD_2025),
+    total_aud = sum(AUD_2025)
   )
 
 db.over.time %>%
@@ -201,7 +201,7 @@ db.over.time %>%
   ) %>%
   select(
     Impact_year,
-    AUD.2026.dollar.conversions,
+    AUD_2025,
     expected
   )
 
@@ -231,8 +231,8 @@ quantiles
 
 #summarise the expanded cost
 obs.costsAUS <- summarizeCosts(db.over.timeAUS,
-                               cost.column = "AUD.2026.dollar.conversions",
-                            maximum.year = 2026)
+                               cost.column = "AUD_2025",
+                               maximum.year = 2026)
 
 #print the expanded and summarised aus costs
 obs.costsAUS
@@ -241,10 +241,10 @@ plot(obs.costsAUS)
 
 #plot costs for specified timeframe
 obs.costsAUS2 <- summarizeCosts(db.over.timeAUS,
-                                cost.column = "AUD.2026.dollar.conversions",
-                             minimum.year = 2010,
-                             maximum.year = 2026,
-                             year.breaks = seq(2010, 2026, by = 4))
+                                cost.column = "AUD_2025",
+                                minimum.year = 2010,
+                                maximum.year = 2026,
+                                year.breaks = seq(2010, 2026, by = 4))
 #print the expanded and summarised aus costs
 obs.costsAUS2
 #plot the expanded and summarised aus costs overtime
@@ -261,10 +261,10 @@ p3
 p3 <- p3 +
   labs(
     x = "Year",
-    y = "Average annual cost (2026 AUD$, millions)"
+    y = "Average annual cost (2025 AUD$, millions)"
   ) +
   scale_x_continuous(
-    breaks = seq(2004, 2026, by = 4)
+    breaks = seq(2010, 2026, by = 4)
   ) +
   scale_y_log10(
     labels = comma
