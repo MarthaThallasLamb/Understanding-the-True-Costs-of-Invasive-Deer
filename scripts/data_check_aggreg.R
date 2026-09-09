@@ -33,7 +33,7 @@ nrow(invacost.cervid)
 
 #check for points with Uncertain starting periods (without beginning or end date)
 uncertain.starts <- invacost.cervid[which(invacost.cervid$Time_range == "Period" &
-                                     is.na(invacost.cervid$Probable_starting_year)), ]
+                                            is.na(invacost.cervid$Probable_starting_year)), ]
 
 #print the number of estimates without adequate information about starting year
 nrow(uncertain.starts)
@@ -55,7 +55,7 @@ nrow(invacost.cervid)
 
 #data check for additional cost estimates found
 #load data
-Additional<- read_csv("Additional Cost estimates for invasive cervidae 9-09.csv")
+Additional<- read_csv("data/Additional Cost estimates for invasive cervidae 9-09.csv")
 
 #check number of current cost estimates within dataset
 nrow(Additional)
@@ -72,7 +72,7 @@ nrow(Additional)
 
 #check for points with Uncertain starting periods
 uncertain.startsadditional <- Additional[which(Additional$Time_range == "Period" &
-                                            is.na(Additional$Probable_starting_year)), ]
+                                                 is.na(Additional$Probable_starting_year)), ]
 # Number of estimates without adequate information about starting year
 nrow(uncertain.startsadditional)
 
@@ -157,7 +157,10 @@ write.csv(invacost.aggcervidae, "Aggregated cervidae data filtered.csv", row.nam
 file.show("Aggregated cervidae data filtered.csv")
 
 ##remove data points after manual check 117 (sc3299 duplicate) 113 (sc3091 horse/donkey)
-cleaned_df <- invacost.aggcervidae[-c(117, 113), ]
+cleaned_df <- subset(
+  invacost.aggcervidae,
+  !(Cost_ID %in% c("SC3299", "SC3091"))
+)
 
 ##check rows and columns
 nrow(invacost.aggcervidae)
