@@ -4,16 +4,6 @@ library(invacost)
 library(dplyr)
 library(plyr)
 
-#read data
-data <- read_csv("Cleaned Additional cervidae data points.csv")
-
-#turn into dataframe
-data_df <- as.data.frame(data)
-
-#manually view the dataframe
-View(data_df)
-
-#exclude non aus costs 
 #find all country names
 unique(data_df$Official_country)
 #choose only australian costs
