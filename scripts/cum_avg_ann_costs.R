@@ -160,12 +160,11 @@ ggplot(obs.costs2$cost.per.year,
   xlab("Year") +
   theme_minimal()
 
-#print the customised plot
-p2
 
 #now do for just the australian costs 
-#exclude non aus costs 
+#find all country names
 unique(data_df$Official_country)
+#choose only australian costs
 dataAUS <- data_df[which(data_df$Official_country == "Australia"), ]
 
 #check the number of rows 
