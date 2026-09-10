@@ -72,6 +72,40 @@ plot(global.trend) + labs(y = "Average annual cost (2025 AUD$, millions)")
 
 
 #Australian exclusive data
+#find all country names
+unique(data_df$Official_country)
+#choose only australian costs
+dataAUS <- data_df[which(data_df$Official_country == "Australia"), ]
+
+#check the number of rows 
+nrow(dataAUS)
+
+#expand the australian costs
+db.over.timeAUS <- expandYearlyCosts(
+  dataAUS,
+  startcolumn = "Probable_starting_year_adjusted",
+  endcolumn = "Probable_ending_year_adjusted"
+)
+
+# Add converted costs to dataset
+db.over.timeAUS <- db.over.timeAUS %>%
+  mutate(
+    AUD_2025 = Cost_estimate_per_year_2017_USD_exchange_rate * conv_factor
+  )
+
+#check that the conversion worked and has been added to aus data
+db.over.timeAUS %>%
+  filter(Cost_ID == "FD61") %>%
+  mutate(
+    expected = Cost_estimate_per_year_2017_USD_exchange_rate *
+      conv_factor
+  ) %>%
+  select(
+    Impact_year,
+    AUD_2025,
+    expected
+  )
+
 #plot timelag
 db.over.timeAUS$Publication_lag <- db.over.timeAUS$Publication_year - db.over.timeAUS$Impact_year
 
