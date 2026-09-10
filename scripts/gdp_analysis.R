@@ -99,3 +99,11 @@ ggplot(gdp.analysis,
        aes(Year, CostPercentGDP)) +
   geom_area(fill = "#D55E00", alpha = .7) +
   geom_line(colour = "#B2182B")
+
+#find the averages across mean annual gdp, mean percent of gdp and mean cost per billion
+gdp.analysis %>%
+  summarise(
+    MeanAnnualCostAUD = mean(AnnualCostAUD, na.rm = TRUE),
+    MeanPercentGDP = mean(CostPercentGDP, na.rm = TRUE),
+    MeanCostPerBillionGDP = mean(CostPerBillionGDP, na.rm = TRUE)
+  )
