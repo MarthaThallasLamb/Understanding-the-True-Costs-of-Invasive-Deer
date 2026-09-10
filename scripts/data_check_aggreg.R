@@ -170,6 +170,9 @@ ncol(invacost.aggcervidae)
 nrow(cleaned_df)
 ncol(cleaned_df)
 
+#check for duplicates
+cleaned_df$Cost_ID[duplicated(cleaned_df$Cost_ID)]
+
 #print data again to manually check data points
 write.csv(cleaned_df, "Cleaned Additional cervidae data points.csv", row.names = FALSE)
 file.show("Cleaned Additional cervidae data points.csv")
