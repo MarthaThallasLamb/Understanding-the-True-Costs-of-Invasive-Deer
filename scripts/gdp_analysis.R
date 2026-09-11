@@ -1,8 +1,38 @@
 #Load data and packages needed
 library(readr)
 library(invacost)
-library(dplyr)
 library(plyr)
+library(dplyr)
+
+#read data
+data <- read_csv("Cleaned Additional cervidae data points.csv")
+
+#turn into dataframe
+data_df <- as.data.frame(data)
+
+#manually view the dataframe
+View(data_df)
+
+#expand data using invacost package
+db.over.time <- expandYearlyCosts(
+  data_df,
+  startcolumn = "Probable_starting_year_adjusted",
+  endcolumn = "Probable_ending_year_adjusted"
+)
+
+#USD 2017 to AUD 2025 conversion factor
+cpi_2017 <- 115.6868
+cpi_2025 <- 148.4573
+
+aud_usd_2017 <- 0.7669  # 1 AUD = 0.7669 USD
+
+conv_factor <- (1 / aud_usd_2017) * (cpi_2025 / cpi_2017)
+
+# Add converted costs to dataset
+db.over.time <- db.over.time %>%
+  mutate(
+    AUD_2025 = Cost_estimate_per_year_2017_USD_exchange_rate * conv_factor
+  )
 
 #find all country names
 unique(data_df$Official_country)
@@ -54,7 +84,7 @@ annual.costs <- db.over.timeAUS %>%
   )
 
 #read Australian GDP data
-gdp <- read_csv("GDPAUS.csv")
+gdp <- read_csv("data/GDPAUS.csv")
 
 #creates a new dataframe to store the results of this operation
 gdp.analysis <- 
