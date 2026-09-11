@@ -17,10 +17,8 @@ invacost.cervid <- invacost[which(invacost$Family == "Cervidae"), ]
 #check the number of rows
 nrow(invacost.cervid)
 
-#print data and save as csv to manually check datapoints
-write.csv(invacost.cervid, "invacostv4.1 cervidae datapoints only.csv", row.names = FALSE)
-#open csv
-file.show("invacostv4.1 cervidae datapoints only.csv")
+#Manually check datapoint remaining
+view(invacost.cervid)
 
 ##filter out points with missing information
 if(any(is.na(invacost.cervid$Cost_estimate_per_year_2017_USD_exchange_rate)))
@@ -55,8 +53,9 @@ nrow(invacost.cervid)
 
 #data check for additional cost estimates found
 #load data
-Additional<- read_csv("data/Additional Cost estimates for invasive cervidae 9-09.csv")
-
+Additional<- read_csv("data/Additional Cost estimates for invasive cervidae 10-09.csv")
+#manual check
+View(Additional)
 #check number of current cost estimates within dataset
 nrow(Additional)
 ncol(Additional)
@@ -91,10 +90,8 @@ Additional <- Additional[which(Additional$Implementation == "Observed"), ]
 #find the number of rows after filtering
 nrow(Additional)
 
-#print data to manually check datapoints
-write.csv(Additional, "Additional cervidae data points filtered.csv", row.names = FALSE)
-#open csv file
-file.show("Additional cervidae data points filtered.csv")
+#manual check
+view(Additional)
 
 #aggregate both datasets 
 #check variable names are the same 
@@ -152,9 +149,8 @@ class(invacost.cervid$Max_Raw_cost_estimate_original_currency)
 #combine the original invacost dataset that has been filtered and the additional cervidae cost dataset that was also filtered 
 invacost.aggcervidae <- bind_rows(Additional, invacost.cervid)
 
-##print data to manually check datapoints
-write.csv(invacost.aggcervidae, "Aggregated cervidae data filtered.csv", row.names = FALSE)
-file.show("Aggregated cervidae data filtered.csv")
+#Manual check
+view(invacost.aggcervidae)
 
 ##remove data points after manual check 117 (sc3299 duplicate) 113 (sc3091 horse/donkey)
 cleaned_df <- subset(
@@ -163,15 +159,13 @@ cleaned_df <- subset(
 )
 
 ##check rows and columns
-nrow(invacost.aggcervidae)
-ncol(invacost.aggcervidae)
-
-##check rows and columns
 nrow(cleaned_df)
 ncol(cleaned_df)
 
 #check for duplicates
 cleaned_df$Cost_ID[duplicated(cleaned_df$Cost_ID)]
+#Manual check
+view(cleaned_df)
 
 #print data again to manually check data points
 write.csv(cleaned_df, "Cleaned Additional cervidae data points.csv", row.names = FALSE)
