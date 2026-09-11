@@ -22,12 +22,12 @@ db.over.time <- expandYearlyCosts(
 )
 
 #USD 2017 to AUD 2025 conversion factor
-cpi_2017 <- 245.121
-cpi_2025 <- 321.962
+cpi_2017 <- 115.6868
+cpi_2025 <- 148.4573
 
 aud_usd_2017 <- 0.7669  # 1 AUD = 0.7669 USD
 
-conv_factor <- (cpi_2025 / cpi_2017) / aud_usd_2017
+conv_factor <- (1 / aud_usd_2017) * (cpi_2025 / cpi_2017)
 
 # Add converted costs to dataset
 db.over.time <- db.over.time %>%
@@ -36,7 +36,11 @@ db.over.time <- db.over.time %>%
   )
 
 #manually inspect conversions
-head(db.over.time$Cost_estimate_per_year_2017_USD_exchange_rate)
+print(db.over.time$Cost_estimate_per_year_2017_USD_exchange_rate)
+print(db.over.time$AUD_2025)
+
+write.csv(db.over.time, "testr.csv", row.names = FALSE)
+file.show("testr.csv")
 
 #create histogram to visualise the data
 hist(db.over.time$AUD_2025)
@@ -181,27 +185,6 @@ db.over.timeAUS <- expandYearlyCosts(
 db.over.timeAUS <- db.over.timeAUS %>%
   mutate(
     AUD_2025 = Cost_estimate_per_year_2017_USD_exchange_rate * conv_factor
-  )
-
-#check that the conversion worked and has been added to aus data
-db.over.timeAUS %>%
-  filter(Cost_ID == "FD61") %>%
-  summarise(
-    years = n(),
-    annual_aud = first(AUD_2025),
-    total_aud = sum(AUD_2025)
-  )
-
-db.over.time %>%
-  filter(Cost_ID == "FD61") %>%
-  mutate(
-    expected = Cost_estimate_per_year_2017_USD_exchange_rate *
-      conv_factor
-  ) %>%
-  select(
-    Impact_year,
-    AUD_2025,
-    expected
   )
 
 #Calculating time lag
