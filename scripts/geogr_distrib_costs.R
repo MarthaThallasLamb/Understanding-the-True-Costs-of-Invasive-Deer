@@ -32,12 +32,12 @@ db.over.time <- expandYearlyCosts(
 )
 
 #USD 2017 to AUD 2025 conversion factor
-cpi_2017 <- 245.121
-cpi_2025 <- 321.962
+cpi_2017 <- 115.6868
+cpi_2025 <- 148.4573
 
 aud_usd_2017 <- 0.7669  # 1 AUD = 0.7669 USD
 
-conv_factor <- (cpi_2025 / cpi_2017) / aud_usd_2017
+conv_factor <- (1 / aud_usd_2017) * (cpi_2025 / cpi_2017)
 
 # Add converted costs to dataset
 db.over.time <- db.over.time %>%
@@ -131,7 +131,7 @@ obs.regions <- map(Regions,
 sf_use_s2(FALSE)
 
 #Read Natural Earth shapefile
-invacost.world <- read_sf("C:/Users/Jordan/OneDrive - Flinders/Honours Project/Honours Writing/Code and data/Honours project cost analyses/Data synthesis/Additional data/Code for analyses") 
+invacost.world <- read_sf("ne_10m_admin_0_countries.shp") 
   
   #Create region field
   invacost.world$Region <- as.character(invacost.world$CONTINENT)
@@ -217,7 +217,8 @@ invacost.world <- read_sf("C:/Users/Jordan/OneDrive - Flinders/Honours Project/H
       frame = FALSE
     )
   
-  #Australian distribution
+  
+#Australian distribution
   #find all country names
   unique(data_df$Official_country)
   #choose only australian costs
@@ -237,19 +238,6 @@ invacost.world <- read_sf("C:/Users/Jordan/OneDrive - Flinders/Honours Project/H
   db.over.timeAUS <- db.over.timeAUS %>%
     mutate(
       AUD_2025 = Cost_estimate_per_year_2017_USD_exchange_rate * conv_factor
-    )
-  
-  #check that the conversion worked and has been added to aus data
-  db.over.timeAUS %>%
-    filter(Cost_ID == "FD61") %>%
-    mutate(
-      expected = Cost_estimate_per_year_2017_USD_exchange_rate *
-        conv_factor
-    ) %>%
-    select(
-      Impact_year,
-      AUD_2025,
-      expected
     )
   
   #change variable name
@@ -354,10 +342,6 @@ invacost.world <- read_sf("C:/Users/Jordan/OneDrive - Flinders/Honours Project/H
   #inspect estimate counts
   str(state_counts)
   print(state_counts)
-  
-  #compare state names between datasets
-  sort(unique(state_counts$State))
-  sort(unique(map_data$State))
   
   # Create cost classes
   map_data <- map_data %>%
