@@ -22,12 +22,12 @@ db.over.time <- expandYearlyCosts(
 )
 
 #USD 2017 to AUD 2025 conversion factor
-cpi_2017 <- 245.121
-cpi_2025 <- 321.962
+cpi_2017 <- 115.6868
+cpi_2025 <- 148.4573
 
 aud_usd_2017 <- 0.7669  # 1 AUD = 0.7669 USD
 
-conv_factor <- (cpi_2025 / cpi_2017) / aud_usd_2017
+conv_factor <- (1 / aud_usd_2017) * (cpi_2025 / cpi_2017)
 
 # Add converted costs to dataset
 db.over.time <- db.over.time %>%
@@ -48,10 +48,10 @@ costtype <- list(
 
 ##Summarise cost function used
 obs.costtype <- purrr::map(costtype, 
-                    summarizeCosts,
-                    cost.column = "AUD_2025",
-                    minimum.year = 1990,
-                    maximum.year = 2026)
+                           summarizeCosts,
+                           cost.column = "AUD_2025",
+                           minimum.year = 1990,
+                           maximum.year = 2026)
 
 ##combine raw cost data and period data 
 cost.data <- rbind(
@@ -166,17 +166,17 @@ year_weights
 
 #fit cost trend models separately for each cost type 
 pred.costtype.25 <- purrr::map(costtype, 
-                        modelCosts,
-                        cost.column = "AUD_2025",
-                        minimum.year = 1990, 
-                        maximum.year = 2026,
-                        final.year = 2024,
-                        
-# Some years are so incomplete that we eliminate with our 25% threshold (see above)
-incomplete.year.threshold = 2024 - quantiles["25%"], 
-
-# For the other incomplete years we apply the vector of weights that we defined above
-incomplete.year.weights = year_weights)
+                               modelCosts,
+                               cost.column = "AUD_2025",
+                               minimum.year = 1990, 
+                               maximum.year = 2026,
+                               final.year = 2024,
+                               
+                               # Some years are so incomplete that we eliminate with our 25% threshold (see above)
+                               incomplete.year.threshold = 2024 - quantiles["25%"], 
+                               
+                               # For the other incomplete years we apply the vector of weights that we defined above
+                               incomplete.year.weights = year_weights)
 
 #combine observed damage and management cost data into a single dataframe
 cost.data <- rbind(
@@ -224,10 +224,6 @@ dm_ratio <- robust_preds %>%
   mutate(
     DM_ratio = Damage / Management
   )
-
-#inspect results
-head(dm_ratio)
-print(dm_ratio)
 
 #plot temporal trend in damage:management ratio
 ggplot(dm_ratio,
@@ -328,20 +324,6 @@ db.over.timeAUS <- db.over.timeAUS %>%
     AUD_2025 = Cost_estimate_per_year_2017_USD_exchange_rate * conv_factor
   )
 
-#check that the conversion worked and has been added to aus data
-db.over.timeAUS %>%
-  filter(Cost_ID == "FD61") %>%
-  mutate(
-    expected = Cost_estimate_per_year_2017_USD_exchange_rate *
-      conv_factor
-  ) %>%
-  select(
-    Impact_year,
-    AUD_2025,
-    expected
-  )
-
-
 # Calculating time lag
 db.over.timeAUS$Publication_lag <- db.over.timeAUS$Publication_year - db.over.timeAUS$Impact_year
 
@@ -354,11 +336,11 @@ costtype <- list(
 
 #summarise annual and period costs
 obs.costtypeAUS <- purrr::map(costtype, 
-                    summarizeCosts,
-                    cost.column = "AUD_2025",
-                    minimum.year = 2010,
-                    maximum.year = 2026,
-                    year.breaks = seq(2010, 2026, by = 4))
+                              summarizeCosts,
+                              cost.column = "AUD_2025",
+                              minimum.year = 2010,
+                              maximum.year = 2026,
+                              year.breaks = seq(2010, 2026, by = 4))
 
 #combine average costs by time period 
 cost.data <- rbind(
@@ -473,16 +455,16 @@ year_weights
 
 #fit robust regression models to damage and management costs 
 pred.costtype.25 <- purrr::map(costtype, 
-                        modelCosts,
-                        cost.column = "AUD_2025",
-                        minimum.year = 2010, 
-                        maximum.year = 2026,
-                        final.year = 2026,
-                        # Some years are so incomplete that we eliminate with our 25% threshold (see above)
-                        incomplete.year.threshold = 2024 - quantiles["25%"], 
-                        # For the other incomplete years we apply the vector of weights that we defined above
-                        incomplete.year.weights = year_weights,
-                        gam.k = 4)
+                               modelCosts,
+                               cost.column = "AUD_2025",
+                               minimum.year = 2010, 
+                               maximum.year = 2026,
+                               final.year = 2026,
+                               # Some years are so incomplete that we eliminate with our 25% threshold (see above)
+                               incomplete.year.threshold = 2024 - quantiles["25%"], 
+                               # For the other incomplete years we apply the vector of weights that we defined above
+                               incomplete.year.weights = year_weights,
+                               gam.k = 4)
 
 #combine observed model input data
 cost.data <- rbind(
@@ -563,22 +545,18 @@ robust_predsAUS <- model.preds %>%
     model == "Robust regression",
     Details == "Linear"
   )
-dm_ratio <- robust_predsAUS %>%
+dm_ratioAUS <- robust_predsAUS %>%
   select(Year, type, fit) %>%
   pivot_wider(
     names_from = type,
     values_from = fit
   ) %>%
   mutate(
-    DM_ratio = Damage / Management
+    dm_ratioAUS = Damage / Management
   )
 
-#inspect d:m ratios
-head(dm_ratio)
-print(dm_ratio)
-
 #Plot temporal trend in Damage:Management ratio
-ggplot(dm_ratio,
+ggplot(dm_ratioAUS,
        aes(x = Year, y = DM_ratio)) +
   geom_line(colour = "firebrick", linewidth = 1) +
   geom_point(size = 2) +
