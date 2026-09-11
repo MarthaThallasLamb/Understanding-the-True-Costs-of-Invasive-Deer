@@ -16,7 +16,7 @@ Professor <a href="https://globalecologyflinders.com/people/#CJAB">Corey J. A. B
 ## <a href="https://github.com/MarthaThallasLamb/Understanding-the-True-Costs-of-Invasive-Deer/tree/main/scripts">Scripts</a>
 - <code>cost_benefit.R</code>: cost-benefit analysis script for eradication program
 - <code>cum_avg_ann_costs.R</code>: cumulative average annual costs analysis
-- <code>damage_vs_management_costs.R</code>: comparison of damage versus management costs of invasive deer
+- <code>damage_vs_management_costs.R</code>: comparison of invasive deer damage and management costs
 - <code>data_check_aggreg.R</code>: data check and aggregation script for cervidae
 - <code>deer_biomass_proj.R</code>: estimate invasive deer biomass in Australia and project through time
 - <code>deer_costs_from_biomass.R</code>: calculate costs from biomass estimates and project costs through time
