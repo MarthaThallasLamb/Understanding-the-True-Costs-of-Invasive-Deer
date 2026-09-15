@@ -2,75 +2,6 @@
 library(dplyr)
 library(gt)
 
-#Eradication costs with 95% UI
-#random number generator to produce a repeatable, identical sequence of random numbers
-set.seed(123)
-#set the number of simulation you want run
-n_sims <- 10000
-#state the median cost of eradication which is based on the Australian national deer program
-total_cost_median <- 14000000
-#As we are basing this off of one value a 95% UI assumed to be ±20% around median
-sdlog <- log(1.20) / 1.96
-# Simulate total eradication costs
-#the variable name storing the resulting vector of simulation values
-eradication_cost_sim <- rlnorm(
-#number of simulations to generate  
-n_sims,
-#the mean of the distribution on the log scale  
-meanlog = log(total_cost_median),
-#the standard deviation of the distirbution on the log scale this controls the spread or uncertainty of the simulated costs   
-sdlog = sdlog
-)
-
-# Spread costs evenly across program years
-cost_years <- 2022:2032
-
-#calculates the average annual cost of an eradication program by dividing the simulated total cost by the number of years the program lasts
-annual_cost_sim <- eradication_cost_sim / length(cost_years)
-
-#create function to discounted present values
-#stores the final output into new vector
-PV_cost_4_sim <- 
-#loops through each element of the annual_cost_sim list
-sapply(
-#the input data  
-annual_cost_sim,
-#defines an anonymous function applied to each simulation run  
-function(x)
-    sum(x / (1.04)^(cost_years - 2025))
-)
-#repeat for 7% discount rate
-PV_cost_7_sim <- sapply(
-  annual_cost_sim,
-  function(x)
-    sum(x / (1.07)^(cost_years - 2025))
-)
-
-#Create a dataframe of summary table
-cost_summary <- data.frame(
-  DiscountRate = c("4%", "7%"),
-#add lower interval costs 
-  Lower95 = c(
-    quantile(PV_cost_4_sim, 0.025),
-    quantile(PV_cost_7_sim, 0.025)
-  ) / 1e6,
-#add median interval costs
-  Median = c(
-    median(PV_cost_4_sim),
-    median(PV_cost_7_sim)
-  ) / 1e6,
-#add upper interval costs  
-  Upper95 = c(
-    quantile(PV_cost_4_sim, 0.975),
-    quantile(PV_cost_7_sim, 0.975)
-  ) / 1e6
-)
-#round decimal places to 2 decimal places
-round(cost_summary[, 2:4], 2)
-
-#print summary table
-print(cost_summary)
-
 #check data 
 #function used to plot columns of a matrix againts a vector 
 matplot(
@@ -99,25 +30,6 @@ lwd = 3,
   col = "red"
 )
 
-#plot the costs of eradication
-#set the constant cash outflow for each year
-annual_cost <- 1272727.27
-#years of program
-cost_years <- 2022:2032
-#evaluate the total present value of program costs at 4% discount rate
-PV_cost_4 <- 
-#adds all 11 adjusted annual values together to get a single project lifetime cost estimates
-sum(
-  annual_cost /
-#applies the time-value-of-money multiplier for each year and calculate the timeline distance relative to the 2025 base year
-    (1.04)^(cost_years - 2025)
-)
-#evaluate the total present value of program costs at 7% discount rate
-PV_cost_7 <- sum(
-  annual_cost /
-    (1.07)^(cost_years - 2025)
-)
-
 #Calculate the total projected damages for each discount rate
 total_pv_4 <- grazing_pv_4 +
   management_pv_4 +
@@ -128,7 +40,6 @@ total_pv_7 <- grazing_pv_7 +
   management_pv_7 +
   forestry_pv_7 +
   collision_pv_7
-
 
 #Monte Carlo simulation eradication costs with uncertainty
 #set the random seed (makes the simulation reproducible everytime code is run same random results produced)
@@ -173,7 +84,6 @@ PV_cost_7_sim <- sapply(
         (1.07)^(cost_years - 2025)
     )
 )
-
 
 #Table 1 projected damage vs eradication
 #create variable name 
@@ -240,6 +150,85 @@ econ_table <- data.frame(
 
 #print the table 
 print(econ_table)
+
+# Figure 1
+# damage and program costs
+econ_plot <- econ_table %>%
+  pivot_longer(
+    cols = -Estimate,
+    names_to = "Metric",
+    values_to = "Value"
+  ) %>%
+  pivot_wider(
+    names_from = Estimate,
+    values_from = Value
+  ) %>%
+  mutate(
+    Type = case_when(
+      grepl("PV_Damages", Metric) ~ "PV Damages",
+      grepl("Eradication_Cost", Metric) ~ "Program Cost",
+      grepl("Damage_Cost_Ratio", Metric) ~ "Damage:Cost Ratio"
+    ),
+    Discount = case_when(
+      grepl("_4$", Metric) ~ "4%",
+      grepl("_7$", Metric) ~ "7%"
+    )
+  )
+
+econ_plot <- econ_table %>%
+  pivot_longer(
+    cols = -Estimate,
+    names_to = "Metric",
+    values_to = "Value"
+  ) %>%
+  pivot_wider(
+    names_from = Estimate,
+    values_from = Value
+  ) %>%
+  mutate(
+    Group = case_when(
+      grepl("PV_Damages", Metric) ~ "PV Damages 2025 AUD Billions",
+      grepl("Eradication_Cost", Metric) ~ "Program Cost 2025 AUD Millions",
+      grepl("Damage_Cost_Ratio", Metric) ~ "Damage:Cost Ratio"
+    ),
+    Discount = case_when(
+      grepl("_4$", Metric) ~ "4%",
+      grepl("_7$", Metric) ~ "7%"
+    )
+  )
+ggplot(
+  econ_plot,
+  aes(
+    x = Discount,
+    ymin = `Lower 95% UI`,
+    ymax = `Upper 95% UI`,
+    colour = Discount
+  )
+) +
+  geom_linerange(
+    linewidth = 8,
+    alpha = 0.6
+  ) +
+  geom_point(
+    aes(y = Median),
+    size = 4,
+    colour = "black"
+  ) +
+  facet_wrap(
+    ~ Group,
+    scales = "free_y"
+  ) +
+   scale_colour_manual(
+    values = c(
+      "4%" = "olivedrab4",
+      "7%" = "red4"
+    )
+  )+
+  labs(
+    x = "Discount rate",
+    y = NULL
+  ) +
+  theme_bw()
 
 #Table 2. cost benefit analyses
 #state the levels of effectivness
@@ -311,3 +300,65 @@ Costs_M = round(
 
 #print table 
 print(cba_table)
+
+# Figure 2
+# Eradication effectiveness
+plot_data <- cba_table %>%
+  select(
+    Effectiveness,
+    NPV_B,
+    BCR,
+    ROI,
+    Benefits_B
+  ) %>%
+  pivot_longer(
+    cols = c(NPV_B, BCR, ROI, Benefits_B),
+    names_to = "Metric",
+    values_to = "Value"
+  ) %>%
+  mutate(
+    Metric = recode(
+      Metric,
+      NPV_B = "Net Present Value (2025 AUD Billion)",
+      BCR = "Benefit-Cost Ratio",
+      ROI = "Return on Investment (%)",
+      Benefits_B = "Avoided damages (2025 AUD Billion)"
+    ),
+    Effectiveness = factor(
+      Effectiveness,
+      levels = c("25%", "50%", "75%", "100%")
+    )
+  )
+
+ggplot(
+  plot_data,
+  aes(
+    x = Effectiveness,
+    y = Value,
+    fill = Metric
+  )
+) +
+  geom_col(
+    width = 0.7
+  ) +
+  facet_wrap(
+    ~Metric,
+    scales = "free_y",
+    ncol = 2
+  ) +
+  scale_fill_manual(
+    values = c(
+      "Net Present Value (2025 AUD Billion)" = "grey28",
+      "Benefit-Cost Ratio" = "olivedrab4",
+      "Return on Investment (%)" = "#2a9d8f",
+      "Avoided damages (2025 AUD Billion)" = "plum4"
+    )
+  ) +
+  labs(
+    x = "Eradication effectiveness",
+    y = NULL
+  ) +
+  theme_bw() +
+  theme(
+    legend.position = "none"
+  )
