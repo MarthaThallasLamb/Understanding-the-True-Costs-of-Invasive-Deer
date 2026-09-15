@@ -41,8 +41,8 @@ quantiles <- quantile(db.over.time$Publication_lag, probs = c(.25, .5, .75))
 quantiles
 
 #Creating the vector of weights
-year_weights <- rep(1, length(1990:2026))
-names(year_weights) <- 1990:2026
+year_weights <- rep(1, length(2000:2026))
+names(year_weights) <- 2000:2026
 
 #Assigning weights
 #Below 25% the weight does not matter because years will be removed
@@ -61,20 +61,27 @@ year_weights
 global.trend <- modelCosts(
   db.over.time, # The EXPANDED database
   cost.column = "AUD_2025",
-  minimum.year = 1990, 
+  minimum.year = 2000, 
   maximum.year = 2026,
-  incomplete.year.threshold = 2025)
+  final.year = 2026,
+  incomplete.year.threshold = 2026 - quantiles["25%"], 
+  incomplete.year.weights = year_weights)
 
 #Let's see the results in the console
 global.trend
+
+summary(global.trend)
+global.trend$RMSE
+
 #plot these results with a changed title
-plot(global.trend) + labs(y = "Average annual cost (2025 AUD$, millions)")
+plot(global.trend,
+     plot.type = "single") + labs(y = "Average annual cost (2025 AUD$, millions)")
 
 
 #Australian exclusive data
 #find all country names
 unique(data_df$Official_country)
-#choose only australian costs
+#choose only Australian costs
 dataAUS <- data_df[which(data_df$Official_country == "Australia"), ]
 
 #check the number of rows 
@@ -102,31 +109,37 @@ quantiles <- quantile(db.over.timeAUS$Publication_lag, probs = c(.25, .5, .75))
 quantiles
 
 # Creating the vector of weights
-year_weights <- rep(1, length(2010:2024))
-names(year_weights) <- 2010:2024
+year_weightsAUS <- rep(1, length(2012:2026))
+names(year_weightsAUS) <- 2012:2026
 
 #Assigning weights
 #Below 25% the weight does not matter because years will be removed
-year_weights[names(year_weights) >= (2024 - quantiles["25%"])] <- 0
+year_weightsAUS[names(year_weightsAUS) >= (2026 - quantiles["25%"])] <- 0
 #Between 25 and 50%, assigning 0.25 weight
-year_weights[names(year_weights) >= (2024 - quantiles["50%"]) &
-               names(year_weights) < (2024 - quantiles["25%"])] <- .25
+year_weightsAUS[names(year_weightsAUS) >= (2026 - quantiles["50%"]) &
+               names(year_weightsAUS) < (2026 - quantiles["25%"])] <- .25
 #Between 50 and 75%, assigning 0.5 weight
-year_weights[names(year_weights) >= (2024 - quantiles["75%"]) &
-               names(year_weights) < (2024 - quantiles["50%"])] <- .5
+year_weightsAUS[names(year_weightsAUS) >= (2026 - quantiles["75%"]) &
+               names(year_weightsAUS) < (2026 - quantiles["50%"])] <- .5
 
 #Let's look at it
-year_weights
+year_weightsAUS
 
 #plot regressions models 
 global.trendAUS <- modelCosts(
   db.over.timeAUS, # The EXPANDED database
   cost.column = "AUD_2025",
-  minimum.year = 2010, 
+  minimum.year = 2012, 
   maximum.year = 2026,
-  incomplete.year.threshold = 2024)
+  final.year = 2026,
+  incomplete.year.threshold = 2026 - quantiles["25%"], 
+  incomplete.year.weights = year_weightsAUS)
 
 #Let's see the results in the console
 global.trendAUS
-#plot with changed title
-plot(global.trendAUS) + labs(y = "Average annual cost (2025 AUD$, millions)")
+summary(global.trendAUS)
+global.trendAUS$RMSE
+
+#plot only significant models/ plot these results with a changed title
+plot(global.trendAUS,
+     plot.type = "single") + labs(y = "Average annual cost (2025 AUD$, millions)")
