@@ -41,6 +41,7 @@ ncol(db.over.time)
 
 ##use plyr::count to count the number of occurrences of unique values in a dataframe or vector in this case (damage or management)
 plyr::count(data_df$Type_of_cost_merged)
+
 costtype <- list(
   Damage = db.over.time[db.over.time$Type_of_cost_merged %in% "Damage", ],
   Management = db.over.time[db.over.time$Type_of_cost_merged %in% "Management", ]
@@ -61,7 +62,6 @@ cost.data <- rbind(
              type = "Management")
 )
 
-
 costperiod <- rbind(
   data.frame(obs.costtype$Damage$average.cost.per.period,
              type = "Damage"),
@@ -73,6 +73,7 @@ costperiod <- rbind(
 costperiod$middle.years <- costperiod$initial_year +
   (costperiod$final_year - 
      costperiod$initial_year) / 2 
+
 plot.breaks = 10^(-15:15)
 
 ##extract column names dynamic mapping
@@ -91,7 +92,6 @@ yearly.cost <- rbind.data.frame(
                                        Annual.cost = sum(get(obs.costtype$Management$parameters$cost.column))),
                       "Management"), c("Year", "Annual.cost", "type"))
 )
-
 
 #generate the visualisation
 ggplot(costperiod) +
@@ -144,38 +144,39 @@ ggplot(costperiod) +
 ##publication lag analysis 
 db.over.time$Publication_lag <- db.over.time$Publication_year - db.over.time$Impact_year
 
+#create quantiles
 quantiles <- quantile(db.over.time$Publication_lag, probs = c(.25, .5, .75))
+
+#print the quantile
 quantiles
 
-# Creating the vector of weights
-year_weights <- rep(1, length(1990:2026))
-names(year_weights) <- 1990:2026
+#Creating the vector of weights
+year_weights <- rep(1, length(2000:2020))
+names(year_weights) <- 2000:2020
 
-# Assigning weights
-# Below 25% the weight does not matter because years will be removed
-year_weights[names(year_weights) >= (2024 - quantiles["25%"])] <- 0
-# Between 25 and 50%, assigning 0.25 weight
-year_weights[names(year_weights) >= (2024 - quantiles["50%"]) &
-               names(year_weights) < (2024- quantiles["25%"])] <- .25
-# Between 50 and 75%, assigning 0.5 weight
-year_weights[names(year_weights) >= (2024 - quantiles["75%"]) &
-               names(year_weights) < (2024 - quantiles["50%"])] <- .5
+#Assigning weights
+#Below 25% the weight does not matter because years will be removed
+year_weights[names(year_weights) >= (2020 - quantiles["25%"])] <- 0
 
-# Let's look at it
+#Between 25 and 50%, assigning 0.25 weight
+year_weights[names(year_weights) >= (2020 - quantiles["50%"]) &
+               names(year_weights) < (2020 - quantiles["25%"])] <- .25
+
+#Between 50 and 75%, assigning 0.5 weight
+year_weights[names(year_weights) >= (2020 - quantiles["75%"]) &
+               names(year_weights) < (2020 - quantiles["50%"])] <- .5
+
+#print the year weights
 year_weights
 
 #fit cost trend models separately for each cost type 
 pred.costtype.25 <- purrr::map(costtype, 
                                modelCosts,
                                cost.column = "AUD_2025",
-                               minimum.year = 1990, 
-                               maximum.year = 2026,
-                               final.year = 2024,
-                               
-                               # Some years are so incomplete that we eliminate with our 25% threshold (see above)
-                               incomplete.year.threshold = 2024 - quantiles["25%"], 
-                               
-                               # For the other incomplete years we apply the vector of weights that we defined above
+                               minimum.year = 2000, 
+                               maximum.year = 2020,
+                               final.year = 2020,
+                               incomplete.year.threshold = 2020 - quantiles["25%"], 
                                incomplete.year.weights = year_weights)
 
 #combine observed damage and management cost data into a single dataframe
@@ -193,19 +194,18 @@ cost.data$Calibration <- factor(cost.data$Calibration,
 model.preds <- rbind(
   data.frame(pred.costtype.25$Damage$estimated.annual.costs,
              type = "Damage",
-             calib = 2026 - quantiles["25%"]),
+             calib = 2020 - quantiles["25%"]),
   data.frame(pred.costtype.25$Management$estimated.annual.costs,
              type = "Management",
-             calib = 2026 - quantiles["25%"])
+             calib = 2020 - quantiles["25%"])
 )
 
 #convert calibration threshold to a factor for plotting/grouping 
 model.preds$calib <- as.factor(model.preds$calib)
+
 #keep only robust regression models with a linear trend
 model.preds <- model.preds[which(model.preds$model == "Robust regression" &
                                    model.preds$Details == "Linear"), ]
-
-
 
 #extract only robust linear regression predictions 
 robust_preds <- model.preds %>%
@@ -228,6 +228,9 @@ dm_ratio <- robust_preds %>%
 #plot temporal trend in damage:management ratio
 ggplot(dm_ratio,
        aes(x = Year, y = DM_ratio)) +
+  scale_x_continuous(
+    breaks = seq(2000, 2020, by = 5)
+  ) +
   geom_line(colour = "firebrick", linewidth = 1) +
   geom_point(size = 2) +
   theme_classic() +
@@ -236,7 +239,6 @@ ggplot(dm_ratio,
     y = "Damage : Management ratio",
     title = "Temporal trend in the D:M ratio"
   )
-
 
 #create figure comparing annual damage and management costs 
 fig2 <- ggplot() + 
@@ -251,6 +253,9 @@ fig2 <- ggplot() +
   #log-scaled y-axis
   scale_y_log10(breaks = plot.breaks,
                 labels = scales::comma) +
+  scale_x_continuous(
+    breaks = seq(2000, 2020, by = 5)
+  ) +
   
   #log tick marks
   annotation_logticks() +
@@ -298,7 +303,6 @@ fig2 <- ggplot() +
                                    margin = margin(t = 5, b = 5, unit = "pt")),
         legend.title = element_text(size = 12),
         legend.position = c(.2, .75))
-
 
 print(fig2)
 
@@ -437,33 +441,33 @@ quantiles <- quantile(db.over.timeAUS$Publication_lag, probs = c(.25, .5, .75))
 quantiles
 
 # Creating the vector of weights
-year_weights <- rep(1, length(2010:2026))
-names(year_weights) <- 2010:2026
+year_weightsAUS <- rep(1, length(2010:2020))
+names(year_weightsAUS) <- 2010:2020
 
 # Assigning weights
 # Below 25% the weight does not matter because years will be removed
-year_weights[names(year_weights) >= (2026 - quantiles["25%"])] <- 0
+year_weightsAUS[names(year_weightsAUS) >= (2020 - quantiles["25%"])] <- 0
 # Between 25 and 50%, assigning 0.25 weight
-year_weights[names(year_weights) >= (2026 - quantiles["50%"]) &
-               names(year_weights) < (2026 - quantiles["25%"])] <- .25
+year_weightsAUS[names(year_weightsAUS) >= (2020 - quantiles["50%"]) &
+               names(year_weightsAUS) < (2020 - quantiles["25%"])] <- .25
 # Between 50 and 75%, assigning 0.5 weight
-year_weights[names(year_weights) >= (2026 - quantiles["75%"]) &
-               names(year_weights) < (2026 - quantiles["50%"])] <- .5
+year_weightsAUS[names(year_weightsAUS) >= (2020 - quantiles["75%"]) &
+               names(year_weightsAUS) < (2020 - quantiles["50%"])] <- .5
 
 # Let's look at it
-year_weights
+year_weightsAUS
 
 #fit robust regression models to damage and management costs 
 pred.costtype.25 <- purrr::map(costtype, 
                                modelCosts,
                                cost.column = "AUD_2025",
                                minimum.year = 2010, 
-                               maximum.year = 2026,
-                               final.year = 2026,
+                               maximum.year = 2020,
+                               final.year = 2020,
                                # Some years are so incomplete that we eliminate with our 25% threshold (see above)
-                               incomplete.year.threshold = 2024 - quantiles["25%"], 
+                               incomplete.year.threshold = 2020 - quantiles["25%"], 
                                # For the other incomplete years we apply the vector of weights that we defined above
-                               incomplete.year.weights = year_weights,
+                               incomplete.year.weights = year_weightsAUS,
                                gam.k = 4)
 
 #combine observed model input data
@@ -482,10 +486,10 @@ cost.data$Calibration <- factor(cost.data$Calibration,
 model.preds <- rbind(
   data.frame(pred.costtype.25$Damage$estimated.annual.costs,
              type = "Damage",
-             calib = 2026 - quantiles["25%"]),
+             calib = 2020 - quantiles["25%"]),
   data.frame(pred.costtype.25$Management$estimated.annual.costs,
              type = "Management",
-             calib = 2026 - quantiles["25%"])
+             calib = 2020 - quantiles["25%"])
 )
 
 #store calibration threshold 
@@ -501,6 +505,8 @@ fig3 <- ggplot() +
   theme_bw() +
   scale_y_log10(breaks = plot.breaks,
                 labels = scales::comma) +
+  scale_x_continuous(breaks = 2010:2020
+  ) +
   annotation_logticks() +
   geom_point(data = cost.data, 
              aes_string(x = "Year",
@@ -557,7 +563,9 @@ dm_ratioAUS <- robust_predsAUS %>%
 
 #Plot temporal trend in Damage:Management ratio
 ggplot(dm_ratioAUS,
-       aes(x = Year, y = DM_ratio)) +
+       aes(x = Year, y = dm_ratioAUS)) +
+  scale_x_continuous(breaks = 2010:2020
+    ) +
   geom_line(colour = "firebrick", linewidth = 1) +
   geom_point(size = 2) +
   theme_classic() +
