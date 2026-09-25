@@ -3,6 +3,7 @@ library(ggplot2)
 library(gt)
 library(tidyr)
 library(dplyr)
+library(patchwork)
 
 # ==========================================
 # TABLE 1
@@ -116,14 +117,6 @@ econ_table |>
     Damage_Cost_Ratio_4 = "Damage:cost ratio (4%)",
     Damage_Cost_Ratio_7 = "Damage:cost ratio (7%)"
   )
-
-# ===========================================================
-# FIGURE 1
-# ===========================================================
-library(dplyr)
-library(tidyr)
-library(ggplot2)
-library(patchwork)
 
 # =========================
 # DAMAGES
