@@ -6,8 +6,7 @@ library(dplyr)
 library(patchwork)
 
 # ==========================================
-# TABLE 1
-# PROJECTED DAMAGES VS ERADICATION COSTS
+# Total invasive deer costs
 # ==========================================
 total_pv_4 <- grazing_pv_4 +
   management_pv_4 +
@@ -19,6 +18,9 @@ total_pv_7 <- grazing_pv_7 +
   forestry_pv_7 +
   collision_pv_7
 
+# ========================================================================================================================
+# Estimated Australian invasive deer eradication costs based on assumptions of cost per deer and and average deer weight
+# ========================================================================================================================
 
 # Input average deer wight of 184 kg based on weighted calculation
 mean_deer_mass <- 184
@@ -50,10 +52,10 @@ summary_costs <- c(
 #print summary costs in the millions
 summary_costs / 1e6
 
-# ===========================================================
+# ==========================================
 # TABLE 1
 # PROJECTED DAMAGES VS ERADICATION COSTS
-# ===========================================================
+# ==========================================
 econ_table <- data.frame(
   
   Estimate = c(
@@ -106,7 +108,8 @@ econ_table <- data.frame(
   )
   
 )
-  
+
+#plot table
 econ_table |>
   gt() |>
   cols_label(
@@ -244,7 +247,8 @@ p3 <- ggplot(
 (p1 | p2 | p3)
 
 # ===========================================================
-# TABLE 2
+# Figure 2
+# Avoided damages based on eradication effectiveness 
 # ===========================================================
 
 effectiveness <- c(
@@ -308,10 +312,7 @@ cba_table <- cba_table |>
     )
   )
 
-# ===========================================================
-# FIGURE 2
-# ===========================================================
-
+#plot figure 2 
 ggplot(
   plot_data,
   aes(
