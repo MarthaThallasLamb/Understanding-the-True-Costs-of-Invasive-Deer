@@ -105,7 +105,7 @@ collision_pv_4 <- numeric(n_sim)
 collision_pv_7 <- numeric(n_sim)
 
 #this section takes each Monte Carlo biomass trajectory and converts them into economic impact
-#for simulation i this extracts the projected biomass for all years from that simulation
+#for simulation (i) this extracts the projected biomass for all years from that simulation
 #extract biomass trajectory 
 for(i in seq_len(n_sim)){
   biomass <- biomass_sims[,i]
@@ -114,7 +114,7 @@ for(i in seq_len(n_sim)){
   abundance <-
     (biomass * 1000) / 184.850
 
-#calculates grazing losses for each year based on projected biomass
+#calculates grazing losses for each year based on projected biomass (noted that this calculation is in this section as biomss was inbedded within the equation.
   grazing <- grazing_cost(
     biomass = biomass,
     farmland_prop = 0.10,
@@ -122,7 +122,7 @@ for(i in seq_len(n_sim)){
     gross_margin_dse = 23.5
   )
 
-#projection of future costs using projected biomass (with all expenditures assumed to scale linearly with biomass - meaning managament and forestry damages increase in direct propoertion to deer biomass)
+#projection of future costs using projected biomass (with all expenditures assumed to scale linearly with biomass - meaning costs increase in direct proportion to deer biomass)
   #farmour labour management 
   management <-
     management_annual *
@@ -320,12 +320,12 @@ collision_cum_4 <- matrix(NA, length(years), n_sim)
 collision_cum_7 <- matrix(NA, length(years), n_sim)
 
 #calcualte the cumulative PV for each simulation
-#(runs through each of the 1000 biomass simulations )
+#(runs through each of the 1000 Monte Carlo biomass iterations)
 for(i in seq_len(n_sim)){ 
 #extracts biomass trajectory 
   biomass <- biomass_sims[, i]
 
-#calculate weighted population abundance
+#weighted equation to calculate population abundance based on the proportion of individual deer species and individual deer species average weight
 abundance <-(biomass * 1000) / 184.850
 
 #calcuate annual grazing cost (must be here as it uses biomass as part of the baseline equation)
@@ -384,7 +384,7 @@ abundance <-(biomass * 1000) / 184.850
   ) 
 }
 
-#create function the plot findings
+#create function to plot findings
 #build plotting function
 build_df <- function(mat, category, rate){
 #lower estimate /1e9 converts $ to billions
