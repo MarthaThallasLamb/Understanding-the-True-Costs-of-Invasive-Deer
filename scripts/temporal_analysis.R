@@ -3,10 +3,10 @@ library(readr)
 library(invacost)
 library(dplyr)
 
-#read data
+#Read data
 data <- read_csv("Cleaned Additional cervidae data points.csv")
 
-#turn into dataframe
+#Turn into dataframe
 data_df <- as.data.frame(data)
 
 #manually view the dataframe
@@ -73,10 +73,79 @@ global.trend
 summary(global.trend)
 global.trend$RMSE
 
-#plot these results with a changed title
-plot(global.trend,
-     plot.type = "single") + labs(y = "Average annual cost (2025 AUD$, millions)")
+#see which models produced a AIC value
+sapply(global.trend$fitted.models, function(x)
+  tryCatch(AIC(x), error = function(e) NA))
 
+#Obtain AIC values for suitable models
+AIC(global.trend$fitted.models$ols.linear)
+AIC(global.trend$fitted.models$ols.quadratic)
+AIC(global.trend$fitted.models$gam)
+
+
+AICs_global <- c(
+  ols.linear = AIC(global.trend$fitted.models$ols.linear),
+  ols.quadratic = AIC(global.trend$fitted.models$ols.quadratic),
+  gam = AIC(global.trend$fitted.models$gam)
+)
+
+#view AIC values
+AICs_global
+
+#calculate ΔAIC
+deltaG <- AICs_global - min(AICs_global)
+
+#print 
+deltaG
+
+#Calculate Akike weights
+AICw <- exp(-0.5 * deltaG) /
+  sum(exp(-0.5 * deltaG))
+
+#print
+AICw
+
+#calculate model-averaged costs
+weights_df <- data.frame(
+  model = c("OLS regression", "OLS regression", "GAM"),
+  Details = c("Linear", "Quadratic", ""),
+  weight = c(
+    AICw["ols.linear"],
+    AICw["ols.quadratic"],
+    AICw["gam"]
+  )
+)
+
+# Model-averaged annual costs
+model_avg_global <- global.trend$estimated.annual.costs %>%
+  inner_join(weights_df, by = c("model", "Details")) %>%
+  mutate(weighted_fit = fit * weight) %>%
+  group_by(Year) %>%
+  summarise(
+    model_avg_cost = sum(weighted_fit),
+    .groups = "drop"
+  )
+
+model_avg_global
+
+#just for 2026 
+model_avg_global %>%
+  filter(Year == 2026)
+
+#average across all years
+mean(model_avg_global$model_avg_cost)
+
+#plot these results with a changed title
+plot(global.trend, plot.type = "single") +
+  labs(
+    y = "Average annual cost (2025 AUD$, millions)",
+  ) +
+  geom_line(
+    data = model_avg_global,
+    aes(x = Year, y = model_avg_cost),
+    colour = "red",
+    linewidth = 2
+  )
 
 #Australian exclusive data
 #find all country names
@@ -140,6 +209,76 @@ global.trendAUS
 summary(global.trendAUS)
 global.trendAUS$RMSE
 
-#plot only significant models/ plot these results with a changed title
-plot(global.trendAUS,
-     plot.type = "single") + labs(y = "Average annual cost (2025 AUD$, millions)")
+#see which models produced a AIC value
+sapply(global.trendAUS$fitted.models, function(x)
+  tryCatch(AIC(x), error = function(e) NA))
+
+#Obtain AIC values for suitable models
+AIC(global.trendAUS$fitted.models$ols.linear)
+AIC(global.trendAUS$fitted.models$ols.quadratic)
+AIC(global.trendAUS$fitted.models$gam)
+
+
+AICs_AUS <- c(
+  ols.linear = AIC(global.trendAUS$fitted.models$ols.linear),
+  ols.quadratic = AIC(global.trendAUS$fitted.models$ols.quadratic),
+  gam = AIC(global.trendAUS$fitted.models$gam)
+)
+
+#view AIC values
+AICs_AUS
+
+#calculate ΔAIC
+deltaA <- AICs_AUS - min(AICs_AUS)
+
+#print 
+deltaA
+
+#Calculate Akike weights
+AICa <- exp(-0.5 * deltaA) /
+  sum(exp(-0.5 * deltaA))
+
+#print
+AICa
+
+#calculate model-averaged costs
+weights_df_AUS <- data.frame(
+  model = c("OLS regression", "OLS regression", "GAM"),
+  Details = c("Linear", "Quadratic", ""),
+  weight = c(
+    AICa["ols.linear"],
+    AICa["ols.quadratic"],
+    AICa["gam"]
+  )
+)
+
+# Model-averaged annual costs
+model_avg_AUS <- global.trendAUS$estimated.annual.costs %>%
+  inner_join(weights_df_AUS, by = c("model", "Details")) %>%
+  mutate(weighted_fit = fit * weight) %>%
+  group_by(Year) %>%
+  summarise(
+    model_avg_cost = sum(weighted_fit),
+    .groups = "drop"
+  )
+
+model_avg_AUS
+
+#just for 2026 
+model_avg_AUS %>%
+  filter(Year == 2026)
+
+#average across all years
+mean(model_avg_AUS$model_avg_cost)
+
+#plot these results with a changed title
+plot(global.trendAUS, plot.type = "single") +
+  labs(
+    y = "Average annual cost (2025 AUD$, millions)",
+  ) +
+  geom_line(
+    data = model_avg_AUS,
+    aes(x = Year, y = model_avg_cost),
+    colour = "red",
+    linewidth = 2
+  )
