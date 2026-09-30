@@ -6,8 +6,10 @@ library(dplyr)
 library(patchwork)
 
 # ==========================================
-# Total invasive deer costs
+# TABLE 1
+# PROJECTED DAMAGES VS ERADICATION COSTS
 # ==========================================
+
 total_pv_4 <- grazing_pv_4 +
   management_pv_4 +
   forestry_pv_4 +
@@ -18,30 +20,44 @@ total_pv_7 <- grazing_pv_7 +
   forestry_pv_7 +
   collision_pv_7
 
-# ========================================================================================================================
-# Estimated Australian invasive deer eradication costs based on assumptions of cost per deer and and average deer weight
-# ========================================================================================================================
+avg_annual_4 <- total_pv_4 / length(years)
 
-# Input average deer wight of 184 kg based on weighted calculation
+avg_annual_7 <- total_pv_7 / length(years)
+
+data.frame(
+  DiscountRate = c("4%", "7%"),
+  Lower95 = c(
+    quantile(avg_annual_4, 0.025),
+    quantile(avg_annual_7, 0.025)
+  ) / 1e9,
+  Median = c(
+    median(avg_annual_4),
+    median(avg_annual_7)
+  ) / 1e9,
+  Upper95 = c(
+    quantile(avg_annual_4, 0.975),
+    quantile(avg_annual_7, 0.975)
+  ) / 1e9
+)
+
+# Convert biomass to abundance
 mean_deer_mass <- 184
 
-# Convert biomass to abundance (184 kg based on weighted calculation)
 abundance_sims <- (biomass_sims * 1000) / mean_deer_mass
 
 # 2025 abundance only
 abundance_2025 <- abundance_sims[1, ]
 
-# Cost per deer based on (Bengsen et al. 2023) aierel culling effectivness analysis. 
+# Cost per deer
 cost_per_deer <- 309
 
 # Eradication cost simulations
 eradication_cost_sim <- abundance_2025 * cost_per_deer
 
-# No discounting required as we are looking at 2025 costs
+# No discounting required
 PV_cost_4_sim <- eradication_cost_sim
 PV_cost_7_sim <- eradication_cost_sim
 
-#print summary of estimated eradication costs
 summary_costs <- c(
   Mean = mean(eradication_cost_sim),
   Median = median(eradication_cost_sim),
@@ -49,13 +65,12 @@ summary_costs <- c(
   Upper95 = quantile(eradication_cost_sim, 0.975)
 )
 
-#print summary costs in the millions
 summary_costs / 1e6
-
-# ==========================================
+# ===========================================================
 # TABLE 1
 # PROJECTED DAMAGES VS ERADICATION COSTS
-# ==========================================
+# ===========================================================
+
 econ_table <- data.frame(
   
   Estimate = c(
@@ -108,8 +123,7 @@ econ_table <- data.frame(
   )
   
 )
-
-#plot table
+  
 econ_table |>
   gt() |>
   cols_label(
@@ -120,6 +134,14 @@ econ_table |>
     Damage_Cost_Ratio_4 = "Damage:cost ratio (4%)",
     Damage_Cost_Ratio_7 = "Damage:cost ratio (7%)"
   )
+
+# ===========================================================
+# FIGURE 1
+# ===========================================================
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(patchwork)
 
 # =========================
 # DAMAGES
@@ -247,8 +269,7 @@ p3 <- ggplot(
 (p1 | p2 | p3)
 
 # ===========================================================
-# Figure 2
-# Avoided damages based on eradication effectiveness 
+# TABLE 2
 # ===========================================================
 
 effectiveness <- c(
@@ -312,7 +333,10 @@ cba_table <- cba_table |>
     )
   )
 
-#plot figure 2 
+# ===========================================================
+# FIGURE 2
+# ===========================================================
+
 ggplot(
   plot_data,
   aes(
