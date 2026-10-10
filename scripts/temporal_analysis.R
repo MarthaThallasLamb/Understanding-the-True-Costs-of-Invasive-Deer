@@ -70,7 +70,10 @@ global.trend <- modelCosts(
 #Let's see the results in the console
 global.trend
 
+#This function provides a comprehensive overview of the model's performance, coefficients, residuals, and fit statistics.
 summary(global.trend)
+#This extracts the Root Mean Squared Error (RMSE) directly from the model object, which measures the average magnitude of the forecast errors 
+#lower values indicate a better fit
 global.trend$RMSE
 
 #see which models produced a AIC value
@@ -82,7 +85,7 @@ AIC(global.trend$fitted.models$ols.linear)
 AIC(global.trend$fitted.models$ols.quadratic)
 AIC(global.trend$fitted.models$gam)
 
-
+#extract and compare the Akaike information criterion vlues of three different trend models stored in the object global.trend
 AICs_global <- c(
   ols.linear = AIC(global.trend$fitted.models$ols.linear),
   ols.quadratic = AIC(global.trend$fitted.models$ols.quadratic),
@@ -102,7 +105,7 @@ deltaG
 AICw <- exp(-0.5 * deltaG) /
   sum(exp(-0.5 * deltaG))
 
-#print
+#print Akike weights
 AICw
 
 #calculate model-averaged costs
@@ -116,7 +119,7 @@ weights_df <- data.frame(
   )
 )
 
-# Model-averaged annual costs
+#Model-averaged annual costs
 model_avg_global <- global.trend$estimated.annual.costs %>%
   inner_join(weights_df, by = c("model", "Details")) %>%
   mutate(weighted_fit = fit * weight) %>%
@@ -126,13 +129,14 @@ model_avg_global <- global.trend$estimated.annual.costs %>%
     .groups = "drop"
   )
 
+#print model-averaged annual costs 
 model_avg_global
 
-#just for 2026 
+#print just 2026 model-averaged costs
 model_avg_global %>%
   filter(Year == 2026)
 
-#average across all years
+#print the average of the model-averaged annual costs across all years
 mean(model_avg_global$model_avg_cost)
 
 #plot these results with a changed title
@@ -218,7 +222,7 @@ AIC(global.trendAUS$fitted.models$ols.linear)
 AIC(global.trendAUS$fitted.models$ols.quadratic)
 AIC(global.trendAUS$fitted.models$gam)
 
-
+#extract and compare the Akaike information criterion vlues of three different trend models stored in the object global.trend
 AICs_AUS <- c(
   ols.linear = AIC(global.trendAUS$fitted.models$ols.linear),
   ols.quadratic = AIC(global.trendAUS$fitted.models$ols.quadratic),
@@ -231,14 +235,14 @@ AICs_AUS
 #calculate ΔAIC
 deltaA <- AICs_AUS - min(AICs_AUS)
 
-#print 
+#print ΔAIC
 deltaA
 
 #Calculate Akike weights
 AICa <- exp(-0.5 * deltaA) /
   sum(exp(-0.5 * deltaA))
 
-#print
+#print Akike weights
 AICa
 
 #calculate model-averaged costs
@@ -252,7 +256,7 @@ weights_df_AUS <- data.frame(
   )
 )
 
-# Model-averaged annual costs
+#Model-averaged annual costs
 model_avg_AUS <- global.trendAUS$estimated.annual.costs %>%
   inner_join(weights_df_AUS, by = c("model", "Details")) %>%
   mutate(weighted_fit = fit * weight) %>%
@@ -264,11 +268,11 @@ model_avg_AUS <- global.trendAUS$estimated.annual.costs %>%
 
 model_avg_AUS
 
-#just for 2026 
+#print just 2026 Model-averaged annual costs 
 model_avg_AUS %>%
   filter(Year == 2026)
 
-#average across all years
+#print average Model-averaged annual costs across all years
 mean(model_avg_AUS$model_avg_cost)
 
 #plot these results with a changed title
