@@ -57,6 +57,9 @@ print(regional_costs)
 country_costs <- aggregate(db.over.time$AUD_2025 ~ db.over.time$Official_country, FUN = sum)
 print(country_costs)
 
+write.csv(db.over.time, "global costs.csv", row.names = FALSE)
+file.show("global costs.csv")
+
 #create time summary of costs for regions
 Regions <- split(
   db.over.time,
@@ -130,8 +133,8 @@ obs.regions <- map(Regions,
 #disable the S2 spherical geometry engine for unprojected geographic (longitude/latitude) coordinates
 sf_use_s2(FALSE)
 
-#Read Natural Earth shapefile
-invacost.world <- read_sf("ne_10m_admin_0_countries.shp") 
+#Read Natural Earth shapefile just downloaded 
+invacost.world <- read_sf() 
   
   #Create region field
   invacost.world$Region <- as.character(invacost.world$CONTINENT)
@@ -246,93 +249,58 @@ invacost.world <- read_sf("ne_10m_admin_0_countries.shp")
   #create table of state names
   table(db.over.timeAUS$State)
   
-  #Let's see some columns to see if worked 
-  print(db.over.timeAUS$State)
-  
   ##change state names to fit analysis / map
-  db.over.timeAUS$State <- revalue(db.over.timeAUS$State, c("Tas" = "Tasmania",
-                                            "SA" = "South Australia"))
+  db.over.timeAUS$State <- recode(
+    db.over.timeAUS$State,
+    "Tas" = "Tasmania",
+    "SA" = "South Australia"
+  )
   
   db.over.timeAUS$State[is.na(db.over.timeAUS$State)] <- "Diverse/Unspecified"
   
   
-  print(db.over.timeAUS$State)
-  
-  
-  ##plot costs overtime
+  #plot costs overtime
   obs.costsAUS <- summarizeCosts(db.over.timeAUS,
                                       cost.column = "AUD_2025",
                                       minimum.year = 2010,
                                       maximum.year = 2026,
                                       year.breaks = seq(2010, 2026, by = 9))
   
+  #print output
   obs.costsAUS
   
   #load Australian map into R
   ozmap_states
   
-  # Sum costs by state
+  #Sum costs by state
   names(ozmap_states)[names(ozmap_states) == "NAME"] <- "State"
-  
-  #calculate total deer-related costs for each Australian state
-  state_costs <- db.over.timeAUS %>%
-    dplyr::group_by(State) %>%
-    dplyr::summarise(
-      TotalCost = sum(
-        AUD_2025,
-        na.rm = TRUE
-      ),
-      .groups = "drop"
-    )
-  
-  #inspect structure and values 
-  str(state_costs)
-  print(state_costs)
-  
+
   #rename unspecified records to match map layer category 
-  state_costs$State[state_costs$State == "Diverse/Unspecified"] <-
+  obs.costsAUS$State[obs.costsAUS$State == "Diverse/Unspecified"] <-
     "Other Territories"
   
-  print(state_costs)
-  
-  #Join cost data to Australian state polygons
-  map_data <- left_join(
-    ozmap_states,
-    state_costs,
-    by = "State"
-  )
-  
-  #plot spatial distribution of total costs by state
-  ggplot(map_data) +
-    geom_sf(aes(fill = TotalCost), colour = "white") +
-    scale_fill_viridis_c(
-      trans = "log10",
-      labels = label_comma(),
-      na.value = "grey90"
-    ) +
-    coord_sf() +
-    labs(
-      x = "Longitude",
-      y = "Latitude",
-      fill = "Total Cost (AUD 2025)"
-    ) +
-    theme_minimal()
-  
 #calculate number of cost estimates reported for each state 
-  state_counts <- db.over.timeAUS %>%
-    group_by(State) %>%
-    summarise(
-      n_estimates = n_distinct(Cost_ID),
+  state_costs <- db.over.timeAUS %>%
+    dplyr::filter(
+      Impact_year >= 2010,
+      Impact_year <= 2026
+    ) %>%
+    dplyr::group_by(State) %>%
+    dplyr::summarise(
+      TotalCost = sum(AUD_2025, na.rm = TRUE),
       .groups = "drop"
     )
   
-  names(db.over.timeAUS)[
-    names(db.over.timeAUS) == "State|Province|Administrative_area"
-  ] <- "State"
-    
+  #inspect estimate counts
+  str(state_costs)
+  print(state_costs)
 
   #replace missing state names and combine counts
   state_counts <- db.over.timeAUS %>%
+    dplyr::filter(
+      Impact_year >= 2010,
+      Impact_year <= 2026
+    ) %>%
     dplyr::group_by(State) %>%
     dplyr::summarise(
       n_estimates = dplyr::n_distinct(Cost_ID),
@@ -343,7 +311,14 @@ invacost.world <- read_sf("ne_10m_admin_0_countries.shp")
   str(state_counts)
   print(state_counts)
   
-  # Create cost classes
+  #Join cost data to Australian state polygons
+  map_data <- left_join(
+    ozmap_states,
+    state_costs,
+    by = "State"
+  )
+  
+  # Create cost classes for the legend
   map_data <- map_data %>%
     mutate(
       CostClass = cut(
@@ -414,7 +389,7 @@ invacost.world <- read_sf("ne_10m_admin_0_countries.shp")
       expand = expansion(mult = c(0, 0.15))
     ) +
     labs(
-      title = "Number of cost estimates",
+      title = "Number of cost entries",
       x = "Estimates",
       y = NULL
     ) +
@@ -431,8 +406,24 @@ invacost.world <- read_sf("ne_10m_admin_0_countries.shp")
     )
   
 
-  # Combine panels (map and number of estimates)
+  #plot with combined panels (map and number of estimates)
   final_plot <- p_map + p_bar +
     plot_layout(widths = c(1.25, 1))
   
   final_plot
+  
+  state_costs_wide <- db.over.timeAUS %>%
+    group_by(State, Type_of_cost_merged) %>%
+    summarise(
+      Total_Cost = sum(AUD_2025,
+                       na.rm = TRUE),
+      .groups = "drop"
+    ) %>%
+    pivot_wider(
+      names_from = Type_of_cost_merged,
+      values_from = Total_Cost,
+      values_fill = 0
+    )
+  #print state costs
+  state_costs_wide  
+  
