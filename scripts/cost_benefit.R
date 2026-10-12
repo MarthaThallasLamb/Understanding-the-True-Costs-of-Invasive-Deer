@@ -272,6 +272,7 @@ p3 <- ggplot(
 # TABLE 2
 # ===========================================================
 
+#fill your levels of effectivness (in this case effectiveness reffers to the percentage of the deer population removed)
 effectiveness <- c(
   0.25,
   0.50,
