@@ -1,25 +1,241 @@
-#load and install packages
-install.packages("gt")
-install.packages("ggplot2")
-library(gt)
 library(ggplot2)
+library(gt)
+library(tidyr)
+library(dplyr)
 
-#Create cost functions
-#Create grazing cost function
+# ==========================================
+# PARAMETERS
+# ==========================================
+
+#starting biomass tonnes
+Btlow  <- 123404
+Btmed  <- 185106
+Bthigh <- 246808
+
+#annual biomass growth rate
+r_low  <- 0.115
+r_med  <- 0.1325
+r_high <- 0.15
+
+#biomass (t) carrying capacity per hectare 
+K_low <- 0.03697 * 10951900
+
+K_med <- (0.03697 * 10951900) +
+  (0.018485 * 8317350)
+
+K_high <- 0.03697 * 45808675
+
+years <- 2025:2055
+
+# ==========================================
+# BIOMASS MODEL
+# ==========================================
+
+##using the rickers model (eulers rule)
+project_biomass <- function(B0, r, K, years = 30){
+  
+  biomass <- numeric(years + 1)
+  biomass[1] <- B0
+  
+  for(t in 1:years){
+    
+    biomass[t + 1] <-
+      biomass[t] *
+      exp(
+        r * (1 - biomass[t] / K)
+      )
+    
+  }
+  
+  biomass
+  
+}
+
+# ==========================================
+# MONTE CARLO SIMULATION for 95% UI
+# ==========================================
+
+set.seed(123)
+
+n_sim <- 1000
+
+biomass_sims <- matrix(
+  NA,
+  nrow = length(years),
+  ncol = n_sim
+)
+
+for(i in seq_len(n_sim)){
+  
+  B0 <- runif(
+    1,
+    Btlow,
+    Bthigh
+  )
+  
+  r <- runif(
+    1,
+    r_low,
+    r_high
+  )
+  
+  K <- runif(
+    1,
+    K_low,
+    K_high
+  )
+  
+  biomass_sims[,i] <-
+    project_biomass(
+      B0,
+      r,
+      K,
+      years = 30
+    )
+  
+}
+
+# ==========================================
+# BIOMASS UNCERTAINTY INTERVALS
+# ==========================================
+
+#quantile 0.025
+biomass_lower <- apply(
+  biomass_sims,
+  1,
+  quantile,
+  probs = 0.025
+)
+
+#median
+biomass_median <- apply(
+  biomass_sims,
+  1,
+  median
+)
+
+#quantile 0.975
+biomass_upper <- apply(
+  biomass_sims,
+  1,
+  quantile,
+  probs = 0.975
+)
+
+# ==========================================
+# BIOMASS PLOT
+# ==========================================
+
+##creating uncertainty interval data frame
+ci_df <- data.frame(
+  Year = years,
+  Lower = biomass_lower / 1e6,
+  Median = biomass_median / 1e6,
+  Upper = biomass_upper / 1e6
+)
+
+##plotting projected biomass
+ggplot(ci_df, aes(Year)) +
+  
+  geom_ribbon(
+    aes(
+      ymin = Lower,
+      ymax = Upper
+    ),
+    fill = "#A6DBA0",
+    alpha = 0.4
+  ) +
+  
+  geom_line(
+    aes(y = Median),
+    colour = "#1B7837",
+    linewidth = 1.5
+  ) +
+  
+  theme_classic(base_size = 14) +
+  
+  labs(
+    x = "Year",
+    y = "Biomass (million tonnes)"
+  )
+
+
+###biomass summary table to show projected biomass growth every 15 years
+biomass_table <- data.frame(
+  
+  Year = c(
+    2025,
+    2040,
+    2055
+  )
+  
+)
+
+rows <- match(
+  biomass_table$Year,
+  years
+)
+
+biomass_table$Lower95 <- round(
+  biomass_lower[rows] / 1e6,
+  3
+)
+
+biomass_table$Median <- round(
+  biomass_median[rows] / 1e6,
+  3
+)
+
+biomass_table$Upper95 <- round(
+  biomass_upper[rows] / 1e6,
+  3
+)
+
+biomass_table
+
+
+##create publishable table
+biomass_table |>
+  gt() |>
+  tab_header(
+    title = md("**Projected Deer Biomass in Australia**"),
+    subtitle = "Million tonnes, median estimates with 95% uncertainty intervals"
+  ) |>
+  fmt_number(
+    columns = c(
+      Lower95,
+      Median,
+      Upper95
+    ),
+    decimals = 3
+  ) |>
+  cols_label(
+    Year = "Year",
+    Lower95 = "Lower 95% UI",
+    Median = "Median",
+    Upper95 = "Upper 95% UI"
+  )
+
+# ==========================================
+# COST FUNCTIONS
+# ==========================================
+
+##calculation of grazing loss
 grazing_cost <- function(
     biomass,
     farmland_prop,
     dse_per_tonne,
     gross_margin_dse
 ){
-#calcualtion
+  
   biomass *
     farmland_prop *
     dse_per_tonne *
     gross_margin_dse
+  
 }
 
-#create function of farmour labour costs
+##calculation of farmour labour costs
 management_cost <- function(
     n_farms,
     prop_affected,
@@ -27,30 +243,36 @@ management_cost <- function(
     hours_day,
     wage
 ){
-#caluclation
+  
   affected <- n_farms * prop_affected
+  
   affected *
     days *
     hours_day *
     wage
+  
 }
 
-#create function of lost forestry yield costs
+##calculation of lost forestry yield costs
 forestry_cost <- function(
     production_m3,
     prop_affected,
     yield_loss,
     price_m3
 ){
-#calculation
+  
   production_m3 *
     prop_affected *
     yield_loss *
     price_m3
+  
 }
 
-#state constant values (calculates baseline values - produces single fixed annual cost)
-#farmour labour assumptions
+# ==========================================
+# CONSTANTS
+# ==========================================
+
+##farmour labour assumptions
 management_annual <- management_cost(
   n_farms = 65000,
   prop_affected = 0.10,
@@ -59,7 +281,7 @@ management_annual <- management_cost(
   wage = 40
 )
 
-#lost forestry yield costs assumptions 
+##lost forestry yield costs assumptions 
 forestry_annual <- forestry_cost(
   production_m3 = 22864000,
   prop_affected = 0.40,
@@ -67,54 +289,57 @@ forestry_annual <- forestry_cost(
   price_m3 = 100.5
 )
 
-#Deer-vehical collison cost 
-#to calculate the cost of vehical collisions associated with invasive deer a crash rate was calculated from 300 reported deer-related accidents divided by an estimated starting population of deer   
 crash_rate <- 300 / 1001385
-#Average cost per crash associated with invasive deer
+
 cost_per_crash <- 20500
 
-#create present value function (this converts future costs into present-day values
+# ==========================================
+# PRESENT VALUE FUNCTION
+# ==========================================
+
 pv <- function(
     costs,
     years,
     discount_rate
-)
-#calcualte PV for each individual year and sum them
-{
+){
+  
   sum(
     costs /
       (1 + discount_rate)^(
         years - min(years)
       )
-  ) 
+  )
 }
 
-#create place to store objects for grazing at 4% and 7% PV 
-#numeric(n_sim) inititalises an empty numeric vector with a length specified by the variable n_sim
-#grazing loss
+# ==========================================
+# STORAGE OBJECTS
+# ==========================================
+
 grazing_pv_4 <- numeric(n_sim)
 grazing_pv_7 <- numeric(n_sim)
-#farmer labour costs
+
 management_pv_4 <- numeric(n_sim)
 management_pv_7 <- numeric(n_sim)
-#forestry yield losses
+
 forestry_pv_4 <- numeric(n_sim)
 forestry_pv_7 <- numeric(n_sim)
-#deer-vehical collision costs
+
 collision_pv_4 <- numeric(n_sim)
 collision_pv_7 <- numeric(n_sim)
 
-#this section takes each Monte Carlo biomass trajectory and converts them into economic impact
-#for simulation (i) this extracts the projected biomass for all years from that simulation
-#extract biomass trajectory 
+# ==========================================
+# ECONOMIC MONTE CARLO based on upper median and lower biomass estimates
+# ==========================================
+
 for(i in seq_len(n_sim)){
+  
   biomass <- biomass_sims[,i]
 
 #weighted calculation for abundance 
   abundance <-
     (biomass * 1000) / 184.850
 
-#calculates grazing losses for each year based on projected biomass (noted that this calculation is in this section as biomss was inbedded within the equation.
+## grazing cost assumptions
   grazing <- grazing_cost(
     biomass = biomass,
     farmland_prop = 0.10,
@@ -122,72 +347,79 @@ for(i in seq_len(n_sim)){
     gross_margin_dse = 23.5
   )
 
-#projection of future costs using projected biomass (with all expenditures assumed to scale linearly with biomass - meaning costs increase in direct proportion to deer biomass)
-  #farmour labour management 
+#projection of future costs using projected biomass
+
+  #farmour labour management
   management <-
     management_annual *
-#calculates the biomass in each year relative to the starting biomass (this ratio is used to scale costs)    
-(biomass / biomass[1])
+    (biomass / biomass[1])
   
-  #repeat for loss forestry yield costs
+  #loss forestry yield costs
   forestry <-
     forestry_annual *
     (biomass / biomass[1])
   
-  #deer-vehicle collision costs (this calculation is based on abundance of population size rather than biomass)
+  #deer-vehicle collision costs
   collisions <-
     abundance *
     crash_rate *
     cost_per_crash
-
-#calculate these costs at a 4% and 7% discount rate using PV function created earlier 
-#grazing costs
-grazing_pv_4[i] <- pv(
+  
+  ##calculation 4% and 7% discount rate 
+  grazing_pv_4[i] <- pv(
     grazing,
     years,
     0.04
   )
+  
   grazing_pv_7[i] <- pv(
     grazing,
     years,
     0.07
   )
-  #farmer labour costs
+  
   management_pv_4[i] <- pv(
     management,
     years,
     0.04
   )
+  
   management_pv_7[i] <- pv(
     management,
     years,
     0.07
   )
-  #forestry costs
+  
   forestry_pv_4[i] <- pv(
     forestry,
     years,
     0.04
   )
+  
   forestry_pv_7[i] <- pv(
     forestry,
     years,
     0.07
   )
-  #collision costs
+  
   collision_pv_4[i] <- pv(
     collisions,
     years,
     0.04
   )
+  
   collision_pv_7[i] <- pv(
     collisions,
     years,
     0.07
-  ) 
+  )
+  
 }
 
-#create a summary table of these results including 4% and 7% discount rate 
+# ==========================================
+# SUMMARY TABLE
+# ==========================================
+
 category_summary <- data.frame(
   
   Category = rep(
@@ -204,64 +436,66 @@ category_summary <- data.frame(
     rep("4%",4),
     rep("7%",4)
   ),
-#calculate 95% uncertainty interval and median for each cost category based on monte carlo simulation (to billion $)
-#Lower interval at 4% PV 
-Lower95 = c(
+
+  #calculate 95% uncertainty interval and median for each cost category based on monte carlo simulation
+  Lower95 = c(
     quantile(grazing_pv_4,0.025),
     quantile(management_pv_4,0.025),
     quantile(forestry_pv_4,0.025),
     quantile(collision_pv_4,0.025),
-#Lower interval at 7% PV
+    
     quantile(grazing_pv_7,0.025),
     quantile(management_pv_7,0.025),
     quantile(forestry_pv_7,0.025),
     quantile(collision_pv_7,0.025)
   ) / 1e9,
-#Median interval 4% PV
+  
   Median = c(
     median(grazing_pv_4),
     median(management_pv_4),
     median(forestry_pv_4),
     median(collision_pv_4),
-#Median interval 7% PV
+    
     median(grazing_pv_7),
     median(management_pv_7),
     median(forestry_pv_7),
     median(collision_pv_7)
   ) / 1e9,
-#Upper interval 4% PV
+  
   Upper95 = c(
     quantile(grazing_pv_4,0.975),
     quantile(management_pv_4,0.975),
     quantile(forestry_pv_4,0.975),
     quantile(collision_pv_4,0.975),
- #Upper interval 7% PV
+    
     quantile(grazing_pv_7,0.975),
     quantile(management_pv_7,0.975),
     quantile(forestry_pv_7,0.975),
     quantile(collision_pv_7,0.975)
-  ) / 1e9 
+  ) / 1e9
+  
 )
 
-#Print summary table 
 print(category_summary)
 
-#Present value plot of total projected cost (side-by-side bar chart with error bars visualises median present value at 4% and 7% discount rate alongside their 95% uncertainty interval)
+# ==========================================
+# PRESENT VALUE PLOT of total projected cost
+# ==========================================
+
 ggplot(
   category_summary,
-#x-axis tracks discrete category, the height of the bar shows the median value and the bars are colour-filled by discount rate  
-aes(
+  aes(
     x = Category,
     y = Median,
     fill = DiscountRate
   )
 ) +
-#places the 4% and 7% discount rate bars next to each other and the bar width is chosen  
+  
   geom_col(
     position = position_dodge(0.8),
     width = 0.7
   ) +
-  #draw error bars strecthing from lower to upper interval and align them using position to center of each bar
+  
   geom_errorbar(
     aes(
       ymin = Lower95,
@@ -270,21 +504,22 @@ aes(
     width = 0.2,
     position = position_dodge(0.8)
   ) +
-  #choose a colour palette
+  
   scale_fill_manual(
     values = c(
-      "4%" = "#0072B2",
-      "7%" = "#D55E00"
+      "4%" = "olivedrab4",
+      "7%" = "magenta4"
     )
   ) +
-#choose theme and font size
+  
   theme_classic(base_size = 14) +
+  
   labs(
     x = NULL,
     y = "Present value (AU$ billion)",
     fill = "Discount rate"
   ) +
-#position the legend at the bottem and tilt the x-axis labels by 20 degrees to prevent them from overlapping
+  
   theme(
     legend.position = "bottom",
     axis.text.x = element_text(
@@ -296,237 +531,280 @@ aes(
     )
   )
 
-#create empty containers to store results from every Monte Carlo simulation
-grazing_cum_4 <- 
-#creates a matrix filled with missing values as placeholder, as the simulation runs these will be overwritten
-matrix(NA, 
-#sets the number of rows in the matrix
-length(years), 
-#sets the number of columns in the matrix corresponding to the toal number of simulation runs or iterations
-n_sim)
-#repeat
+
+## ==========================================
+## STORAGE MATRICES create empty containers to store results from every Monte Carlo simulation
+## ==========================================
+
+grazing_cum_4 <- matrix(NA, length(years), n_sim)
 grazing_cum_7 <- matrix(NA, length(years), n_sim)
-#repeat
+
 management_cum_4 <- matrix(NA, length(years), n_sim)
-#repeat
 management_cum_7 <- matrix(NA, length(years), n_sim)
-#repeat
+
 forestry_cum_4 <- matrix(NA, length(years), n_sim)
-#repeat
 forestry_cum_7 <- matrix(NA, length(years), n_sim)
-#repeat
+
 collision_cum_4 <- matrix(NA, length(years), n_sim)
-#repeat
 collision_cum_7 <- matrix(NA, length(years), n_sim)
 
-#calcualte the cumulative PV for each simulation
-#(runs through each of the 1000 Monte Carlo biomass iterations)
-for(i in seq_len(n_sim)){ 
+## ==========================================
+## CUMULATIVE PV FOR EACH SIMULATION 
+## ==========================================
+
+#(runs through each of the 1000 biomass simulations )
+for(i in seq_len(n_sim)){
+  
 #extracts biomass trajectory 
   biomass <- biomass_sims[, i]
+  
+#calculate abundnace (convert biomass into number of deer)
+  abundance <-
+    (biomass * 1000) / 184.85
 
-#weighted equation to calculate population abundance based on the proportion of individual deer species and individual deer species average weight
-abundance <-(biomass * 1000) / 184.850
-
-#calcuate annual grazing cost (must be here as it uses biomass as part of the baseline equation)
+  #calcuate annual grazing cost (must be here as it uses biomass as part of the baseline equation)
   grazing <- grazing_cost(
     biomass = biomass,
     farmland_prop = 0.10,
     dse_per_tonne = 16.23,
     gross_margin_dse = 23.5
   )
-#calculate annual labour costs (scale baseline labour costs accourding to biomass growth)
+
+  #calculate annual labour costs (scale baseline labour costs accourding to biomass growth)
   management <-
     management_annual *
     (biomass / biomass[1])
-#calculate annual forestry losses (same logic as labour costs) 
+  
+  #calculate annual forestry losses (same logic as labour costs) 
   forestry <-
     forestry_annual *
     (biomass / biomass[1])
-#calculate collision costs 
+  
+  #calculate collision costs 
   collisions <-
     abundance *
     crash_rate *
     cost_per_crash
-
-#convert annual costs into cummulative present value (4% and 7% discount rate)
+  
+  #conver annual costs inmto cummulative present value (4% and 7% discount rate)
   grazing_cum_4[, i] <- cumsum(
     grazing /
       (1 + 0.04)^(years - min(years))
   )
+  
   grazing_cum_7[, i] <- cumsum(
     grazing /
       (1 + 0.07)^(years - min(years))
   )
+  
   management_cum_4[, i] <- cumsum(
     management /
       (1 + 0.04)^(years - min(years))
   )
+  
   management_cum_7[, i] <- cumsum(
     management /
       (1 + 0.07)^(years - min(years))
   )
+  
   forestry_cum_4[, i] <- cumsum(
     forestry /
       (1 + 0.04)^(years - min(years))
   )
+  
   forestry_cum_7[, i] <- cumsum(
     forestry /
       (1 + 0.07)^(years - min(years))
   )
+  
   collision_cum_4[, i] <- cumsum(
     collisions /
       (1 + 0.04)^(years - min(years))
   )
+  
   collision_cum_7[, i] <- cumsum(
     collisions /
       (1 + 0.07)^(years - min(years))
-  ) 
+  )
+  
 }
 
-#create function to plot findings
+## ==========================================
+## FUNCTION TO BUILD PLOTTING DATA
+## ==========================================
+
 #build plotting function
 build_df <- function(mat, category, rate){
+  
 #lower estimate /1e9 converts $ to billions
   data.frame(
     Year = years,
-    Lower = 
-#loops through the matrix mat row by row
-apply(
+    Lower = apply(
       mat, 1, quantile,
-#finds the lower 2.5% boundry for each row      
-probs = 0.025
-    ) 
-#scales the number down by 1 billion
-/ 1e9,
-#repeat for median estimate 
+      probs = 0.025
+    ) / 1e9,
+#median     
     Median = apply(
       mat, 1, median
     ) / 1e9,
-#repeat for upper estimate 
+#upper    
     Upper = apply(
       mat, 1, quantile,
       probs = 0.975
     ) / 1e9,
-#bind the category and discount rate variables together
+    
     Category = category,
     DiscountRate = rate
   )
+  
 }
 
-#Combine all results together (grazing, farmer labour, forestry, collisions)
+## ==========================================
+## COMBINE EVERYTHING all results 
+## ==========================================
+
 plot_df <- rbind(
+  
 #stack results together
   build_df(
     grazing_cum_4,
     "Grazing losses",
     "4%"
   ),
+  
   build_df(
     grazing_cum_7,
     "Grazing losses",
     "7%"
   ),
+  
   build_df(
     management_cum_4,
     "Farmer labour",
     "4%"
   ),
+  
   build_df(
     management_cum_7,
     "Farmer labour",
     "7%"
   ),
+  
   build_df(
     forestry_cum_4,
     "Forestry losses",
     "4%"
   ),
+  
   build_df(
     forestry_cum_7,
     "Forestry losses",
     "7%"
   ),
+  
   build_df(
     collision_cum_4,
     "Deer-vehicle collisions",
     "4%"
   ),
+  
   build_df(
     collision_cum_7,
     "Deer-vehicle collisions",
     "7%"
   )
+  
 )
 
-#create a multi-faceted plot to display singular figure for grazing, farmer costs, forestry and collisions
+## ==========================================
+## FACET PLOT (multi panel figure)
+## ==========================================
+
 #generate figure 
-#initialise the plot and tell R what dataset to use
 ggplot(
   plot_df,
-#select x and y axis  
-aes(
+  aes(
     x = Year,
     y = Median,
-#color the data points based on discount rate
     colour = DiscountRate,
     fill = DiscountRate
   )
 ) +
+  
   geom_ribbon(
-#define the verticle bounries of the shaded ribbon for every point along the x-axis    
-aes(
+    aes(
       ymin = Lower,
       ymax = Upper
     ),
-#controls the transparency of the ribbons fill colour    
-alpha = 0.15,
-#remove outline border    
-colour = NA
+    alpha = 0.15,
+    colour = NA
   ) +
-#draws the line for the data, and select line thickness (1.2)
+  
   geom_line(
     linewidth = 1.2
   ) +
-#split the data into seperate subplots or facets for each unique value in the category column
+  
   facet_wrap(
     ~ Category,
-#this allows each subplot to have its own independent y-axis scale    
-scales = "free_y",
-#arranges these subplots into a grid with 2 columns    
-ncol = 2
+    scales = "free_y",
+    ncol = 2
   ) +
-#manually assign specific color codes to the data lines and fill based on discount rate
+  
   scale_colour_manual(
     values = c(
-      "4%" = "#0072B2",
-      "7%" = "#D55E00"
-    )
-  ) + 
-  scale_fill_manual(
-    values = c(
-      "4%" = "#0072B2",
-      "7%" = "#D55E00"
+      "4%" = "olivedrab4",
+      "7%" = "maroon4"
     )
   ) +
-  #set the text labes for the plot
+  
+  scale_fill_manual(
+    values = c(
+      "4%" = "olivedrab4",
+      "7%" = "maroon4"
+    )
+  ) +
+  
   labs(
     x = "Year",
     y = "Cumulative PV (AU$ billion)",
     colour = "Discount rate",
     fill = "Discount rate"
   ) +
-  #apply the classic theme and set font size
+  
   theme_classic(base_size = 14) +
-  #move the legend to bottem of plot and make the subplot header text
+  
   theme(
     legend.position = "bottom",
     strip.text = element_text(face = "bold"),
     plot.title = element_text(face = "bold")
   )
 
-#create a table that displayes the total damages from 2025 to 2055
-#calculate the total present value of all damages across all sectors and produce one value per simulation
+
+#check data (red line should run through the centre)
+
+matplot(
+  years,
+  biomass_sims[,1:100],
+  type = "l",
+  lty = 1,
+  col = rgb(0,0,0,0.1),
+  xlab = "Year",
+  ylab = "Biomass"
+)
+
+lines(
+  years,
+  biomass_median,
+  lwd = 3,
+  col = "red"
+)
+
+
+# ==========================================
+# TABLE 1
+# PROJECTED DAMAGES VS ERADICATION COSTS
+# ==========================================
+
 total_pv_4 <- grazing_pv_4 +
   management_pv_4 +
   forestry_pv_4 +
@@ -537,31 +815,337 @@ total_pv_7 <- grazing_pv_7 +
   forestry_pv_7 +
   collision_pv_7
 
-#total summary rows
-total_rows <- data.frame(
-#labels both rows as total  
-Category = c(
-    "Total",
-    "Total"
-  ),
-#specify which row corresponds to which financial discount rate   
-DiscountRate = c(
-    "4%",
-    "7%"
-  ),
-#calculate the 2.5th percentile of the simulated value using the quantile function
+avg_annual_4 <- total_pv_4 / length(years)
+
+avg_annual_7 <- total_pv_7 / length(years)
+
+data.frame(
+  DiscountRate = c("4%", "7%"),
   Lower95 = c(
-    quantile(total_pv_4, 0.025),
-    quantile(total_pv_7, 0.025)
+    quantile(avg_annual_4, 0.025),
+    quantile(avg_annual_7, 0.025)
   ) / 1e9,
-#calculate the 50th percentile of the simulated value using the quantile function
   Median = c(
-    median(total_pv_4),
-    median(total_pv_7)
+    median(avg_annual_4),
+    median(avg_annual_7)
   ) / 1e9,
-#calculate the 97.5th percentile of the simulated value using the quantile function
   Upper95 = c(
-    quantile(total_pv_4, 0.975),
-    quantile(total_pv_7, 0.975)
+    quantile(avg_annual_4, 0.975),
+    quantile(avg_annual_7, 0.975)
   ) / 1e9
 )
+
+# Convert biomass to abundance
+mean_deer_mass <- 184
+
+abundance_sims <- (biomass_sims * 1000) / mean_deer_mass
+
+# 2025 abundance only
+abundance_2025 <- abundance_sims[1, ]
+
+# Cost per deer
+cost_per_deer <- 309
+
+# Eradication cost simulations
+eradication_cost_sim <- abundance_2025 * cost_per_deer
+
+# No discounting required
+PV_cost_4_sim <- eradication_cost_sim
+PV_cost_7_sim <- eradication_cost_sim
+
+summary_costs <- c(
+  Mean = mean(eradication_cost_sim),
+  Median = median(eradication_cost_sim),
+  Lower95 = quantile(eradication_cost_sim, 0.025),
+  Upper95 = quantile(eradication_cost_sim, 0.975)
+)
+
+summary_costs / 1e6
+# ===========================================================
+# TABLE 1
+# PROJECTED DAMAGES VS ERADICATION COSTS
+# ===========================================================
+
+econ_table <- data.frame(
+  
+  Estimate = c(
+    "Lower 95% UI",
+    "Median",
+    "Upper 95% UI"
+  ),
+  
+  PV_Damages_4 = round(
+    c(
+      quantile(total_pv_4, 0.025),
+      median(total_pv_4),
+      quantile(total_pv_4, 0.975)
+    ) / 1e9,
+    2
+  ),
+  
+  PV_Damages_7 = round(
+    c(
+      quantile(total_pv_7, 0.025),
+      median(total_pv_7),
+      quantile(total_pv_7, 0.975)
+    ) / 1e9,
+    2
+  ),
+  
+  Eradication_Cost = round(
+    c(
+      quantile(eradication_cost_sim, 0.025),
+      median(eradication_cost_sim),
+      quantile(eradication_cost_sim, 0.975)
+    ) / 1e6,
+    2
+  ),
+  
+  Damage_Cost_Ratio_4 = round(
+    quantile(
+      total_pv_4 / eradication_cost_sim,
+      c(0.025, 0.50, 0.975)
+    ),
+    0
+  ),
+  
+  Damage_Cost_Ratio_7 = round(
+    quantile(
+      total_pv_7 / eradication_cost_sim,
+      c(0.025, 0.50, 0.975)
+    ),
+    0
+  )
+  
+)
+  
+econ_table |>
+  gt() |>
+  cols_label(
+    Estimate = "Estimate",
+    PV_Damages_4 = "PV damages (4%, A$B)",
+    PV_Damages_7 = "PV damages (7%, A$B)",
+    Eradication_Cost = "Eradication cost (A$M)",
+    Damage_Cost_Ratio_4 = "Damage:cost ratio (4%)",
+    Damage_Cost_Ratio_7 = "Damage:cost ratio (7%)"
+  )
+
+# ===========================================================
+# FIGURE 1
+# ===========================================================
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(patchwork)
+
+# =========================
+# DAMAGES
+# =========================
+
+damage_plot <- data.frame(
+  Scenario = c("4%", "7%"),
+  Lower = c(
+    econ_table$PV_Damages_4[1],
+    econ_table$PV_Damages_7[1]
+  ),
+  Median = c(
+    econ_table$PV_Damages_4[2],
+    econ_table$PV_Damages_7[2]
+  ),
+  Upper = c(
+    econ_table$PV_Damages_4[3],
+    econ_table$PV_Damages_7[3]
+  )
+)
+
+p1 <- ggplot(
+  damage_plot,
+  aes(
+    x = Scenario,
+    y = Median
+  )
+) +
+  geom_col(
+    fill = "grey40",
+    width = 0.7
+  ) +
+  geom_errorbar(
+    aes(
+      ymin = Lower,
+      ymax = Upper
+    ),
+    width = 0.15
+  ) +
+  labs(
+    x = "Discount rate",
+    y = "AUD 2025 Billions"
+  ) +
+  theme_bw()
+
+# =========================
+# ERADICATION COST
+# =========================
+
+cost_plot <- data.frame(
+  Scenario = "2025",
+  Lower = econ_table$Eradication_Cost[1],
+  Median = econ_table$Eradication_Cost[2],
+  Upper = econ_table$Eradication_Cost[3]
+)
+
+p2 <- ggplot(
+  cost_plot,
+  aes(
+    x = Scenario,
+    y = Median
+  )
+) +
+  geom_col(
+    fill = "olivedrab4",
+    width = 0.7
+  ) +
+  geom_errorbar(
+    aes(
+      ymin = Lower,
+      ymax = Upper
+    ),
+    width = 0.15
+  ) +
+  labs(
+    x = NULL,
+    y = "AUD 2025 Millions"
+  ) +
+  theme_bw()
+
+# =========================
+# DAMAGE:COST RATIO
+# =========================
+
+ratio_plot <- data.frame(
+  Scenario = c("4%", "7%"),
+  Lower = c(
+    econ_table$Damage_Cost_Ratio_4[1],
+    econ_table$Damage_Cost_Ratio_7[1]
+  ),
+  Median = c(
+    econ_table$Damage_Cost_Ratio_4[2],
+    econ_table$Damage_Cost_Ratio_7[2]
+  ),
+  Upper = c(
+    econ_table$Damage_Cost_Ratio_4[3],
+    econ_table$Damage_Cost_Ratio_7[3]
+  )
+)
+
+p3 <- ggplot(
+  ratio_plot,
+  aes(
+    x = Scenario,
+    y = Median
+  )
+) +
+  geom_col(
+    fill = "#2a9d8f",
+    width = 0.7
+  ) +
+  geom_errorbar(
+    aes(
+      ymin = Lower,
+      ymax = Upper
+    ),
+    width = 0.15
+  ) +
+  labs(
+    x = "Discount rate",
+    y = "Damage:Cost Ratio"
+  ) +
+  theme_bw()
+
+(p1 | p2 | p3)
+
+# ===========================================================
+# TABLE 2
+# ===========================================================
+
+effectiveness <- c(
+  0.25,
+  0.50,
+  0.75,
+  1.00
+)
+
+PV_Damages_Median <- median(total_pv_4)
+
+cba_table <- data.frame(
+  
+  Effectiveness = c(
+    "25%",
+    "50%",
+    "75%",
+    "100%"
+  ),
+  
+  Benefits = PV_Damages_Median * effectiveness,
+  
+  Costs = median(PV_cost_4_sim)
+  
+)
+
+cba_table$NPV <-
+  cba_table$Benefits -
+  cba_table$Costs
+
+cba_table$BCR <-
+  cba_table$Benefits /
+  cba_table$Costs
+
+cba_table$ROI <-
+  ((cba_table$Benefits -
+      cba_table$Costs) /
+     cba_table$Costs) * 100
+
+cba_table <- cba_table |>
+  mutate(
+    Benefits_B = round(
+      Benefits / 1e9,
+      2
+    ),
+    Costs_M = round(
+      Costs / 1e6,
+      2
+    ),
+    NPV_B = round(
+      NPV / 1e9,
+      2
+    ),
+    BCR = round(
+      BCR,
+      1
+    ),
+    ROI = round(
+      ROI,
+      0
+    )
+  )
+
+# ===========================================================
+# FIGURE 2
+# ===========================================================
+
+ggplot(
+  plot_data,
+  aes(
+    x = Effectiveness,
+    y = Value,
+    fill = Metric
+  )
+) +
+  geom_col(
+    width = 0.7
+  ) +
+  facet_wrap(
+    ~ Metric,
+    scales = "free_y",
+    ncol = 2
+  ) +
+  theme_bw()
