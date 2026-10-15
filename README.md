@@ -25,7 +25,7 @@ Professor <a href="https://globalecologyflinders.com/people/#CJAB">Corey J. A. B
 - <code>temporal_analysis.R</code>: temporal analysis script for cost modelling
 
 ## Data
-- Additional Cost estimates for invasive cervidae 31-08: Holds all the data collated during my data synthesis that took place during 2026
+- Additional Cost estimates for invasive cervidae 31-08: Holds all the data collated during my data synthesis of invasive deer costs worldwide.
 - GDPAU: Spreadsheet containing Australian gross domestic product, Australian CPI, and the Australian 2025 conversion of Australia's gross domestic product from 1960 to 2025.
 
 ## Required R libraries
