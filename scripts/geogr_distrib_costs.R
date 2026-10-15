@@ -412,18 +412,15 @@ invacost.world <- read_sf()
   
   final_plot
   
-  state_costs_wide <- db.over.timeAUS %>%
-    group_by(State, Type_of_cost_merged) %>%
-    summarise(
-      Total_Cost = sum(AUD_2025,
-                       na.rm = TRUE),
-      .groups = "drop"
-    ) %>%
-    pivot_wider(
+  #plot the type of costs (damage or management) that is found in each state
+  state_costs_wide <- test %>%
+    tidyr::pivot_wider(
       names_from = Type_of_cost_merged,
       values_from = Total_Cost,
       values_fill = 0
     )
-  #print state costs
-  state_costs_wide  
+
+#print total costs of each cost type
+print(test)
+  
   
