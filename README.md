@@ -26,6 +26,7 @@ Professor <a href="https://globalecologyflinders.com/people/#CJAB">Corey J. A. B
 
 ## Data
 - Additional Cost estimates for invasive cervidae 31-08: Holds all the data collated during my data synthesis that took place during 2026
+- GDPAU: Spreadsheet containing Australian gross domestic product, Australian CPI, and the Australian 2025 conversion of Australia's gross domestic product from 1960 to 2025.
 
 ## Required R libraries
 <code>dplyr</code>, <code>ggplot2</code>, <code>gt</code>, <code>invacost</code>, <code>maps</code>, <code>ozmaps</code>, <code>patchwork</code>, <code>plyr</code>, <code>purrr</code>, <code>readr</code>, <code>rnaturalearth</code>, <code>scales</code>, <code>sf</code>, <code>sp</code>, <code>tidyverse</code>, <code>tmap</code>, <code>tools</code>
