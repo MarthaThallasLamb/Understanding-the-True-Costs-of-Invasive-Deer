@@ -22,8 +22,8 @@ db.over.time <- expandYearlyCosts(
 )
 
 #USD 2017 to AUD 2025 conversion factor
-cpi_2017 <- 115.6868
-cpi_2025 <- 148.4573
+cpi_2017 <- 111.175
+cpi_2025 <- 142
 
 aud_usd_2017 <- 0.7669  # 1 AUD = 0.7669 USD
 
