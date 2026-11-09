@@ -423,4 +423,86 @@ invacost.world <- read_sf()
 #print total costs of each cost type
 print(test)
   
+#bivariate plot of the TOTAL COSTS vs. n ENTRIES BY STATE
+# costs of deer by Australian state
   
+  #Combine cost totals and estimate counts
+  cost_n_state <- state_costs %>%
+    left_join(state_counts, by = "State") %>%
+    rename(
+      cost = TotalCost,
+      n = n_estimates
+    )
+  
+#remove diverse/unspecified category  
+cost_n_state <- cost_n_state %>%
+    filter(State != "Diverse/Unspecified")
+  
+  #create abbreviation cloumn to use as labels 
+  cost_n_state <- cost_n_state %>%
+    mutate(
+      State_abbr = recode(
+        State,
+        "Australian Capital Territory" = "ACT",
+        "New South Wales" = "NSW",
+        "Queensland" = "QLD",
+        "South Australia" = "SA",
+        "Tasmania" = "TAS",
+        "Victoria" = "VIC",
+        "Western Australia" = "WA"
+      )
+    )
+
+#print number of cost estimates per state
+  cost_n_state
+  
+  #fit the simple linear regression model on the log transformed variables
+  fit_costXn <- lm(log10(cost) ~ log10(n), data = cost_n_state)
+  #print summary 
+  summary(fit_costXn)
+  
+  #create bivariate plot of the TOTAL COSTS vs. n ENTRIES BY STATE
+  library(ggrepel)
+  
+  ggplot(cost_n_state, aes(x = n, y = cost / 1e6)) +
+    geom_point() +
+    geom_smooth(method = "lm", se = TRUE, color = "blue") +
+    
+    scale_x_log10() +
+    
+    scale_y_log10(
+      breaks = c(0.1, 1, 10, 100),
+      labels = c("0.1", "1.0", "10.0", "100.0")
+    ) +
+    
+    labs(
+      x = "Count of individual cost entries",
+      y = "Total invasive deer costs (AU$, millions)"
+    ) +
+    
+    geom_label_repel(
+      aes(label = State_abbr),
+      size = 3.5,
+      box.padding = 0.2,
+      point.padding = 0.5,
+      segment.color = "grey50",
+      segment.alpha = 0.9,
+      show.legend = FALSE,
+      alpha = 1,
+      max.overlaps = 3
+    ) +
+    
+    theme(
+      axis.title.x = element_text(size = 14),
+      axis.title.y = element_text(size = 16),
+      axis.text.x = element_text(size = 16),
+      axis.text.y = element_text(size = 12)
+    )
+
+#run ordinary least squares linear regression model on log transoformed variables 
+  fit_costXn <- lm(log10(cost) ~ log10(n),
+                   data = cost_n_state)
+
+#print model summary output
+  summary(fit_costXn)
+    
