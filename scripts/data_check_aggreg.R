@@ -167,6 +167,8 @@ cleaned_df$Cost_ID[duplicated(cleaned_df$Cost_ID)]
 #Manual check
 view(cleaned_df)
 
-#print data again to manually check data points
+#print data again to manually check 
 write.csv(cleaned_df, "Cleaned Additional cervidae data points.csv", row.names = FALSE)
+#check this file manually to fix any issues within csv file, datapoints 55, 57, 58 and 59 (costID: 270, 455, 456 and 457) have missing information under the variable Location these points will need to be corrected manually as they come from the InvaCost database V4.1. 
+#Add in the correct information from the Location variable to the State|Province|Administrative_area 
 file.show("Cleaned Additional cervidae data points.csv")
